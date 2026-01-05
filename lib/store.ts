@@ -19,7 +19,7 @@ const setLocalPlans = (plans: Plan[]): void => {
 
 // 모든 기획안 가져오기
 export const getPlans = async (): Promise<Plan[]> => {
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && supabase) {
     // Supabase에서 가져오기
     const { data, error } = await supabase
       .from('plans')
@@ -39,7 +39,7 @@ export const getPlans = async (): Promise<Plan[]> => {
 
 // 단일 기획안 가져오기
 export const getPlanById = async (id: string): Promise<Plan | null> => {
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && supabase) {
     const { data, error } = await supabase
       .from('plans')
       .select('*')
@@ -67,7 +67,7 @@ export const createPlan = async (planData: Omit<Plan, 'id' | 'createdAt' | 'upda
     updatedAt: now,
   };
 
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && supabase) {
     const { error } = await supabase
       .from('plans')
       .insert(transformToSupabase(newPlan));
@@ -90,7 +90,7 @@ export const createPlan = async (planData: Omit<Plan, 'id' | 'createdAt' | 'upda
 export const updatePlan = async (id: string, planData: Partial<Plan>): Promise<Plan | null> => {
   const now = new Date().toISOString();
   
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && supabase) {
     const { data, error } = await supabase
       .from('plans')
       .update({ ...transformToSupabase(planData as Plan), updated_at: now })
@@ -129,7 +129,7 @@ const updateLocalPlan = (id: string, planData: Partial<Plan>, now: string): Plan
 
 // 기획안 삭제
 export const deletePlan = async (id: string): Promise<boolean> => {
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && supabase) {
     const { error } = await supabase
       .from('plans')
       .delete()
@@ -195,4 +195,3 @@ const transformToSupabase = (plan: Plan) => ({
   created_at: plan.createdAt,
   updated_at: plan.updatedAt,
 });
-
