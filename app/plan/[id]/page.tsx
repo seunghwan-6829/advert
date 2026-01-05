@@ -14,6 +14,15 @@ import {
   ExternalLink,
   Tag,
   X,
+  FileText,
+  DollarSign,
+  Link2,
+  Clock,
+  StickyNote,
+  Layers,
+  Calendar,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -98,7 +107,12 @@ export default function PlanDetailPage() {
       <div className="flex min-h-screen">
         <Sidebar plans={allPlans} currentPlanId={planId} />
         <main className="flex-1 ml-64 p-8 flex items-center justify-center">
-          <div className="text-[#9b9a97]">불러오는 중...</div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 animate-pulse">
+              <Loader2 size={32} className="text-indigo-400 animate-spin" />
+            </div>
+            <span className="text-[#8b8b9e]">불러오는 중...</span>
+          </div>
         </main>
       </div>
     );
@@ -109,12 +123,18 @@ export default function PlanDetailPage() {
       <div className="flex min-h-screen">
         <Sidebar plans={allPlans} />
         <main className="flex-1 ml-64 p-8 flex flex-col items-center justify-center">
-          <h2 className="text-xl font-medium mb-4">기획안을 찾을 수 없습니다</h2>
-          <Link href="/">
-            <button className="text-[#9b9a97] hover:text-white">
-              목록으로 돌아가기
-            </button>
-          </Link>
+          <div className="glass-card rounded-2xl p-12 text-center max-w-md">
+            <div className="inline-flex p-4 rounded-2xl bg-red-500/10 mb-6">
+              <AlertTriangle size={40} className="text-red-400" />
+            </div>
+            <h2 className="text-xl font-semibold mb-3">기획안을 찾을 수 없습니다</h2>
+            <p className="text-[#8b8b9e] mb-6">요청하신 기획안이 존재하지 않거나 삭제되었습니다.</p>
+            <Link href="/">
+              <button className="btn-primary">
+                목록으로 돌아가기
+              </button>
+            </Link>
+          </div>
         </main>
       </div>
     );
@@ -124,20 +144,20 @@ export default function PlanDetailPage() {
     <div className="flex min-h-screen">
       <Sidebar plans={allPlans} currentPlanId={planId} />
 
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 ml-64 p-8 lg:p-12">
         {/* 상단 네비게이션 */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8 animate-fade-in-up">
           <Link href="/">
-            <button className="flex items-center gap-2 text-[#9b9a97] hover:text-white transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-[#8b8b9e] hover:text-white hover:bg-white/5 transition-all duration-200">
               <ArrowLeft size={18} />
-              목록으로
+              <span className="font-medium">목록으로</span>
             </button>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={handleDelete}
-              className="flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all duration-200"
             >
               <Trash2 size={18} />
               삭제
@@ -145,51 +165,60 @@ export default function PlanDetailPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-100 transition-colors font-medium disabled:opacity-50"
+              className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
-              {saving ? '저장 중...' : '저장'}
+              {saving ? '저장 중...' : '저장하기'}
             </button>
           </div>
         </div>
 
         {/* 기획안 헤더 */}
-        <div className="mb-8">
+        <div className="mb-10 animate-fade-in-up stagger-1">
           <input
             type="text"
             value={plan.title}
             onChange={(e) => handleFieldChange('title', e.target.value)}
-            className="text-3xl font-bold bg-transparent border-none outline-none w-full mb-2"
+            className="page-title bg-transparent border-none outline-none w-full mb-4"
             placeholder="기획안 제목"
           />
-          <div className="flex items-center gap-4 text-sm text-[#9b9a97]">
-            <span>
-              영상{' '}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+              <FileText size={16} className="text-indigo-400" />
+              <span className="text-sm text-[#8b8b9e]">영상</span>
               <input
                 type="number"
                 value={plan.videoNumber}
                 onChange={(e) =>
                   handleFieldChange('videoNumber', parseInt(e.target.value) || 1)
                 }
-                className="w-12 bg-transparent border-b border-[#333] text-white text-center"
+                className="w-14 bg-transparent text-indigo-400 font-semibold text-center border-b border-indigo-500/30 focus:border-indigo-400"
               />
-              번
-            </span>
-            <span>•</span>
-            <span>
-              생성일: {new Date(plan.createdAt).toLocaleDateString('ko-KR')}
-            </span>
+              <span className="text-sm text-[#8b8b9e]">번</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
+              <Calendar size={16} className="text-purple-400" />
+              <span className="text-sm text-[#8b8b9e]">
+                생성일: {new Date(plan.createdAt).toLocaleDateString('ko-KR')}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* 기본 정보 */}
-        <div className="bg-[#252525] rounded-lg p-6 mb-6 border border-[#333]">
-          <h2 className="text-lg font-medium mb-4">기본 정보</h2>
+        <div className="glass-card rounded-2xl p-8 mb-8 animate-fade-in-up stagger-2">
+          <h2 className="flex items-center gap-3 text-xl font-semibold mb-6">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20">
+              <Layers size={20} className="text-indigo-400" />
+            </div>
+            기본 정보
+          </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* 소스 비용 */}
-            <div>
-              <label className="block text-xs text-[#9b9a97] mb-1">
+            <div className="space-y-2">
+              <label className="field-label">
+                <DollarSign size={14} className="text-emerald-400" />
                 소스 비용
               </label>
               <div className="flex items-center">
@@ -199,17 +228,18 @@ export default function PlanDetailPage() {
                   onChange={(e) =>
                     handleFieldChange('sourceCost', parseInt(e.target.value) || 0)
                   }
-                  className="flex-1 bg-[#1a1a1a] text-white p-2 rounded-l border border-[#333] focus:border-[#555]"
+                  className="input-field focus-ring flex-1 rounded-r-none border-r-0"
                 />
-                <span className="bg-[#333] px-3 py-2 rounded-r border border-l-0 border-[#333] text-[#9b9a97]">
+                <span className="px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-r-lg text-emerald-400 font-medium text-sm">
                   원
                 </span>
               </div>
             </div>
 
             {/* 제작 비용 */}
-            <div>
-              <label className="block text-xs text-[#9b9a97] mb-1">
+            <div className="space-y-2">
+              <label className="field-label">
+                <DollarSign size={14} className="text-blue-400" />
                 제작 비용
               </label>
               <div className="flex items-center">
@@ -222,17 +252,18 @@ export default function PlanDetailPage() {
                       parseInt(e.target.value) || 0
                     )
                   }
-                  className="flex-1 bg-[#1a1a1a] text-white p-2 rounded-l border border-[#333] focus:border-[#555]"
+                  className="input-field focus-ring flex-1 rounded-r-none border-r-0"
                 />
-                <span className="bg-[#333] px-3 py-2 rounded-r border border-l-0 border-[#333] text-[#9b9a97]">
+                <span className="px-4 py-3 bg-blue-500/10 border border-blue-500/20 rounded-r-lg text-blue-400 font-medium text-sm">
                   원
                 </span>
               </div>
             </div>
 
             {/* 영상 길이 */}
-            <div>
-              <label className="block text-xs text-[#9b9a97] mb-1">
+            <div className="space-y-2">
+              <label className="field-label">
+                <Clock size={14} className="text-amber-400" />
                 영상 길이
               </label>
               <input
@@ -240,29 +271,30 @@ export default function PlanDetailPage() {
                 value={plan.videoLength}
                 onChange={(e) => handleFieldChange('videoLength', e.target.value)}
                 placeholder="예: 1080 * 1920 (9:16)"
-                className="w-full bg-[#1a1a1a] text-white p-2 rounded border border-[#333] focus:border-[#555]"
+                className="input-field focus-ring w-full"
               />
             </div>
 
             {/* RF 링크 */}
-            <div className="md:col-span-2 lg:col-span-3">
-              <label className="block text-xs text-[#9b9a97] mb-1">
+            <div className="md:col-span-2 lg:col-span-3 space-y-2">
+              <label className="field-label">
+                <Link2 size={14} className="text-purple-400" />
                 RF 링크
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <input
                   type="url"
                   value={plan.rfLink}
                   onChange={(e) => handleFieldChange('rfLink', e.target.value)}
                   placeholder="https://..."
-                  className="flex-1 bg-[#1a1a1a] text-white p-2 rounded border border-[#333] focus:border-[#555]"
+                  className="input-field focus-ring flex-1"
                 />
                 {plan.rfLink && (
                   <a
                     href={plan.rfLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-[#333] rounded hover:bg-[#444] transition-colors"
+                    className="btn-secondary p-3 flex items-center justify-center"
                   >
                     <ExternalLink size={18} />
                   </a>
@@ -271,8 +303,9 @@ export default function PlanDetailPage() {
             </div>
 
             {/* 참고 정보 */}
-            <div className="md:col-span-2 lg:col-span-3">
-              <label className="block text-xs text-[#9b9a97] mb-1">
+            <div className="md:col-span-2 lg:col-span-3 space-y-2">
+              <label className="field-label">
+                <StickyNote size={14} className="text-pink-400" />
                 참고 정보
               </label>
               <textarea
@@ -281,46 +314,51 @@ export default function PlanDetailPage() {
                   handleFieldChange('referenceNote', e.target.value)
                 }
                 placeholder="참고 정보를 입력하세요..."
-                className="w-full bg-[#1a1a1a] text-white p-2 rounded border border-[#333] focus:border-[#555] resize-none min-h-[80px]"
+                className="input-field focus-ring w-full resize-none min-h-[100px] leading-relaxed"
               />
             </div>
 
             {/* 키워드 */}
-            <div className="md:col-span-2 lg:col-span-3">
-              <label className="block text-xs text-[#9b9a97] mb-1">
-                <Tag size={12} className="inline mr-1" />
+            <div className="md:col-span-2 lg:col-span-3 space-y-3">
+              <label className="field-label">
+                <Tag size={14} className="text-indigo-400" />
                 들어가야 하는 키워드
               </label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {plan.keywords.map((keyword, idx) => (
-                  <span
-                    key={idx}
-                    className="flex items-center gap-1 px-2 py-1 bg-[#1a1a1a] rounded text-sm"
-                  >
-                    {keyword}
-                    <button
-                      onClick={() => handleRemoveKeyword(keyword)}
-                      className="text-[#6b6b6b] hover:text-red-400"
+              
+              {plan.keywords.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {plan.keywords.map((keyword, idx) => (
+                    <span
+                      key={idx}
+                      className="keyword-tag group"
                     >
-                      <X size={14} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
+                      {keyword}
+                      <button
+                        onClick={() => handleRemoveKeyword(keyword)}
+                        className="opacity-60 hover:opacity-100 hover:text-red-400 transition-all"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex items-center gap-3">
                 <input
                   type="text"
                   value={newKeyword}
                   onChange={(e) => setNewKeyword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
-                  placeholder="키워드 추가..."
-                  className="flex-1 bg-[#1a1a1a] text-white p-2 rounded border border-[#333] focus:border-[#555]"
+                  placeholder="키워드를 입력하고 Enter..."
+                  className="input-field focus-ring flex-1"
                 />
                 <button
                   onClick={handleAddKeyword}
-                  className="px-3 py-2 bg-[#333] rounded hover:bg-[#444] transition-colors"
+                  className="btn-secondary flex items-center gap-2 px-5"
                 >
                   <Plus size={18} />
+                  추가
                 </button>
               </div>
             </div>
@@ -328,37 +366,50 @@ export default function PlanDetailPage() {
         </div>
 
         {/* 섹션들 */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium">섹션</h2>
+        <div className="mb-8 animate-fade-in-up stagger-3">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="flex items-center gap-3 text-xl font-semibold">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+                <FileText size={20} className="text-purple-400" />
+              </div>
+              섹션
+              <span className="ml-2 px-2.5 py-0.5 rounded-full bg-white/5 text-sm text-[#8b8b9e]">
+                {plan.sections.length}
+              </span>
+            </h2>
             <button
               onClick={handleAddSection}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#333] rounded hover:bg-[#444] transition-colors text-sm"
+              className="btn-secondary flex items-center gap-2"
             >
-              <Plus size={16} />
+              <Plus size={18} />
               섹션 추가
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             {plan.sections.length === 0 ? (
-              <div className="text-center py-8 text-[#6b6b6b]">
-                <p className="mb-2">아직 섹션이 없습니다</p>
+              <div className="text-center py-16 border-2 border-dashed border-[#2a2a3a] rounded-2xl">
+                <div className="inline-flex p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 mb-4">
+                  <Layers size={32} className="text-[#5c5c6f]" />
+                </div>
+                <p className="text-[#5c5c6f] mb-4">아직 섹션이 없습니다</p>
                 <button
                   onClick={handleAddSection}
-                  className="text-[#9b9a97] hover:text-white underline"
+                  className="btn-primary inline-flex items-center gap-2"
                 >
-                  첫 번째 섹션 추가하기
+                  <Plus size={18} />
+                  첫 섹션 추가하기
                 </button>
               </div>
             ) : (
               plan.sections.map((section, index) => (
-                <SectionEditor
-                  key={section.id}
-                  section={section}
-                  onChange={(s) => handleSectionChange(index, s)}
-                  onDelete={() => handleDeleteSection(index)}
-                />
+                <div key={section.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <SectionEditor
+                    section={section}
+                    onChange={(s) => handleSectionChange(index, s)}
+                    onDelete={() => handleDeleteSection(index)}
+                  />
+                </div>
               ))
             )}
           </div>
@@ -367,4 +418,3 @@ export default function PlanDetailPage() {
     </div>
   );
 }
-
