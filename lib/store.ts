@@ -1,6 +1,6 @@
 import { Plan, StoryboardItem, Brand } from '@/types/plan';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase, useSupabaseDB } from './supabase';
 
 const STORAGE_KEY = 'advert_plans_v2'; // 새 버전 (스토리보드 형식)
 const BRANDS_STORAGE_KEY = 'advert_brands';
@@ -22,7 +22,7 @@ const setLocalBrands = (brands: Brand[]): void => {
 
 // 모든 브랜드 가져오기
 export const getBrands = async (): Promise<Brand[]> => {
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     const { data, error } = await supabase
       .from('brands')
       .select('*')
@@ -41,7 +41,7 @@ export const getBrands = async (): Promise<Brand[]> => {
 
 // 단일 브랜드 가져오기
 export const getBrandById = async (id: string): Promise<Brand | null> => {
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     const { data, error } = await supabase
       .from('brands')
       .select('*')
@@ -74,7 +74,7 @@ export const createBrand = async (brandData: { name: string; logo?: string }): P
     updatedAt: now,
   };
 
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     const { error } = await supabase
       .from('brands')
       .insert(transformBrandToSupabase(newBrand));
@@ -96,7 +96,7 @@ export const createBrand = async (brandData: { name: string; logo?: string }): P
 export const updateBrand = async (id: string, brandData: Partial<Brand>): Promise<Brand | null> => {
   const now = new Date().toISOString();
   
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     const { data, error } = await supabase
       .from('brands')
       .update({ ...transformBrandToSupabase(brandData as Brand), updated_at: now })
@@ -135,7 +135,7 @@ const updateLocalBrand = (id: string, brandData: Partial<Brand>, now: string): B
 
 // 브랜드 삭제
 export const deleteBrand = async (id: string): Promise<boolean> => {
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     // 먼저 해당 브랜드의 기획안들의 brandId를 null로 설정
     await supabase
       .from('plans')
@@ -175,7 +175,7 @@ const deleteLocalBrand = (id: string): boolean => {
 export const reorderBrands = async (brandIds: string[]): Promise<void> => {
   const updates = brandIds.map((id, index) => ({ id, order: index }));
   
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     for (const update of updates) {
       await supabase
         .from('brands')
@@ -235,7 +235,7 @@ const setLocalPlans = (plans: Plan[]): void => {
 
 // 모든 기획안 가져오기
 export const getPlans = async (): Promise<Plan[]> => {
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     // Supabase에서 가져오기
     const { data, error } = await supabase
       .from('plans')
@@ -255,7 +255,7 @@ export const getPlans = async (): Promise<Plan[]> => {
 
 // 단일 기획안 가져오기
 export const getPlanById = async (id: string): Promise<Plan | null> => {
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     const { data, error } = await supabase
       .from('plans')
       .select('*')
@@ -283,7 +283,7 @@ export const createPlan = async (planData: Omit<Plan, 'id' | 'createdAt' | 'upda
     updatedAt: now,
   };
 
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     const { error } = await supabase
       .from('plans')
       .insert(transformToSupabase(newPlan));
@@ -306,7 +306,7 @@ export const createPlan = async (planData: Omit<Plan, 'id' | 'createdAt' | 'upda
 export const updatePlan = async (id: string, planData: Partial<Plan>): Promise<Plan | null> => {
   const now = new Date().toISOString();
   
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     const { data, error } = await supabase
       .from('plans')
       .update({ ...transformToSupabase(planData as Plan), updated_at: now })
@@ -345,7 +345,7 @@ const updateLocalPlan = (id: string, planData: Partial<Plan>, now: string): Plan
 
 // 기획안 삭제
 export const deletePlan = async (id: string): Promise<boolean> => {
-  if (isSupabaseConfigured() && supabase) {
+  if (useSupabaseDB() && supabase) {
     const { error } = await supabase
       .from('plans')
       .delete()
