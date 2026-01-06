@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { User } from '@supabase/supabase-js';
 
@@ -31,16 +31,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
+  const permissionCacheRef = useRef<Map<string, UserPermissions>>(new Map());
+  const fetchingRef = useRef<Set<string>>(new Set());
 
   // 관리자 여부 확인
   const isAdmin = user ? ADMIN_EMAILS.includes(user.email || '') : false;
 
-  // 유저 권한 레코드 생성 (없으면 생성)
-  const ensureUserPermission = useCallback(async (userId: string, email: string) => {
+  // 유저 권한 가져오기 (캐시 사용)
+  const fetchUserPermission = async (userId: string, email: string): Promise<UserPermissions | null> => {
     if (!supabase) return null;
     
+    // 캐시 확인
+    const cached = permissionCacheRef.current.get(userId);
+    if (cached) return cached;
+    
+    // 이미 요청 중이면 대기
+    if (fetchingRef.current.has(userId)) {
+      return null;
+    }
+    
+    fetchingRef.current.add(userId);
+    
     try {
-      // 먼저 기존 권한 확인
+      // 기존 권한 확인
       const { data: existing, error: fetchError } = await supabase
         .from('user_permissions')
         .select('*')
@@ -48,11 +61,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
       
       if (existing && !fetchError) {
-        return {
+        const perms = {
           canCreatePlans: existing.can_create_plans || false,
           canViewProjects: existing.can_view_projects || false,
           allowedBrandIds: existing.allowed_brand_ids || [],
         };
+        permissionCacheRef.current.set(userId, perms);
+        return perms;
       }
       
       // 없으면 새로 생성
@@ -76,24 +91,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
       
-      return {
+      const perms = {
         canCreatePlans: newData?.can_create_plans || false,
         canViewProjects: newData?.can_view_projects || false,
         allowedBrandIds: newData?.allowed_brand_ids || [],
       };
+      permissionCacheRef.current.set(userId, perms);
+      return perms;
     } catch (error) {
-      console.error('Error in ensureUserPermission:', error);
+      console.error('Error in fetchUserPermission:', error);
       return null;
+    } finally {
+      fetchingRef.current.delete(userId);
     }
-  }, []);
+  };
 
-  // 권한 새로고침
-  const refreshPermissions = useCallback(async () => {
+  // 권한 새로고침 (캐시 무효화)
+  const refreshPermissions = async () => {
     if (user && user.email) {
-      const perms = await ensureUserPermission(user.id, user.email);
+      permissionCacheRef.current.delete(user.id);
+      const perms = await fetchUserPermission(user.id, user.email);
       setPermissions(perms);
     }
-  }, [user, ensureUserPermission]);
+  };
 
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) {
@@ -102,31 +122,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let mounted = true;
+    let initialized = false;
 
-    // 현재 세션 확인
+    // 현재 세션 확인 (최초 1회)
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
+      if (!mounted || initialized) return;
+      initialized = true;
       
-      setUser(session?.user ?? null);
-      if (session?.user && session.user.email) {
-        const perms = await ensureUserPermission(session.user.id, session.user.email);
-        if (mounted) setPermissions(perms);
+      if (session?.user) {
+        setUser(session.user);
+        if (session.user.email) {
+          const perms = await fetchUserPermission(session.user.id, session.user.email);
+          if (mounted) setPermissions(perms);
+        }
       }
       if (mounted) setIsLoading(false);
     });
 
-    // 인증 상태 변경 구독
+    // 인증 상태 변경 구독 (로그인/로그아웃 시에만)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
-        setUser(session?.user ?? null);
-        if (session?.user && session.user.email) {
-          // 회원가입이나 로그인 시 권한 레코드 확인/생성
-          const perms = await ensureUserPermission(session.user.id, session.user.email);
-          if (mounted) setPermissions(perms);
+        // INITIAL_SESSION 이벤트는 무시 (getSession에서 처리)
+        if (event === 'INITIAL_SESSION') return;
+        
+        if (session?.user) {
+          setUser(session.user);
+          if (session.user.email) {
+            const perms = await fetchUserPermission(session.user.id, session.user.email);
+            if (mounted) setPermissions(perms);
+          }
         } else {
-          if (mounted) setPermissions(null);
+          setUser(null);
+          setPermissions(null);
         }
         if (mounted) setIsLoading(false);
       }
@@ -136,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [ensureUserPermission]);
+  }, []);
 
   // 회원가입
   const signUp = async (email: string, password: string) => {
@@ -144,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: 'Supabase가 설정되지 않았습니다.' };
     }
 
+    setIsLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -151,14 +181,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
       },
     });
+    setIsLoading(false);
 
     if (error) {
       return { error: error.message };
     }
 
-    // 회원가입 성공 시 권한 레코드 바로 생성
+    // 회원가입 성공 시 권한 레코드 생성 (onAuthStateChange에서 중복 호출되지 않도록)
     if (data.user) {
-      await ensureUserPermission(data.user.id, email);
+      const perms = await fetchUserPermission(data.user.id, email);
+      setPermissions(perms);
     }
 
     return { error: null };
@@ -170,27 +202,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: 'Supabase가 설정되지 않았습니다.' };
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    setIsLoading(false);
 
     if (error) {
       return { error: error.message };
     }
 
-    // 로그인 성공 시 권한 확인/생성
-    if (data.user) {
-      const perms = await ensureUserPermission(data.user.id, email);
-      setPermissions(perms);
-    }
-
+    // 로그인 성공 - onAuthStateChange에서 권한 처리됨
     return { error: null };
   };
 
   // 로그아웃
   const signOut = async () => {
     if (!isSupabaseConfigured() || !supabase) return;
+    permissionCacheRef.current.clear();
     await supabase.auth.signOut();
     setUser(null);
     setPermissions(null);
