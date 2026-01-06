@@ -308,18 +308,18 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
           </div>
         )}
 
-        {/* 하단 메뉴 */}
-        <div className="p-3 border-t border-[#f0e6dc] space-y-1">
-          {/* 관리자 전용 페이지 - 관리자만 표시 */}
-          {isAdmin && (
-            <Link href="/admin">
-              <button className="w-full px-3 py-2 mb-1 bg-[#1a1a1a] rounded-lg hover:bg-[#333333] transition-colors">
-                <p className="text-sm text-white font-medium text-center">관리자 전용 페이지</p>
-              </button>
-            </Link>
-          )}
-          
-          {user ? (
+        {/* 하단 메뉴 - 로그인 한 경우만 표시 */}
+        {user && (
+          <div className="p-3 border-t border-[#f0e6dc] space-y-1">
+            {/* 관리자 전용 페이지 - 관리자만 표시 */}
+            {isAdmin && (
+              <Link href="/admin">
+                <button className="w-full px-3 py-2 mb-1 bg-[#1a1a1a] rounded-lg hover:bg-[#333333] transition-colors">
+                  <p className="text-sm text-white font-medium text-center">관리자 전용 페이지</p>
+                </button>
+              </Link>
+            )}
+            
             <button 
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white bg-[#f97316] hover:bg-[#ea580c] transition-colors"
@@ -327,16 +327,8 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
               <LogOut size={16} />
               <span>로그아웃</span>
             </button>
-          ) : (
-            <button 
-              onClick={() => openAuthModal('login')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white bg-[#f97316] hover:bg-[#ea580c] transition-colors"
-            >
-              <User size={16} />
-              <span>로그인하기</span>
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </aside>
 
       {/* 모달들 */}
