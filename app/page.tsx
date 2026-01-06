@@ -137,27 +137,18 @@ function HomeContent() {
         {!authLoading && canViewProjects && (
           <>
             {/* 상단 통계 + 검색바 (고정) */}
-            <div className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-8 py-5">
-              <div className="flex items-center gap-4">
-                {/* 통계 카드들 */}
-                <div className="stat-card">
-                  <div className="stat-icon bg-[#fff7ed]">
-                    <FileText size={18} className="text-[#f97316]" />
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold text-[#1a1a1a]">{stats.total}</div>
-                    <div className="text-xs text-[#6b7280]">전체 개수</div>
-                  </div>
+            <div className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-8 py-4">
+              <div className="flex items-center gap-6">
+                {/* 통계 - 일자 나열 */}
+                <div className="flex items-center gap-2">
+                  <FileText size={16} className="text-[#f97316]" />
+                  <span className="text-lg font-bold text-[#1a1a1a]">{stats.total}</span>
+                  <span className="text-sm text-[#6b7280]">전체 개수</span>
                 </div>
-
-                <div className="stat-card">
-                  <div className="stat-icon bg-[#dcfce7]">
-                    <CheckCircle size={18} className="text-[#22c55e]" />
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold text-[#1a1a1a]">{stats.completed}</div>
-                    <div className="text-xs text-[#6b7280]">완료</div>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle size={16} className="text-[#22c55e]" />
+                  <span className="text-lg font-bold text-[#1a1a1a]">{stats.completed}</span>
+                  <span className="text-sm text-[#6b7280]">완료</span>
                 </div>
 
                 {/* 검색바 */}
@@ -177,10 +168,10 @@ function HomeContent() {
             </div>
 
             {/* 컨텐츠 영역 */}
-            <div className="px-8 pb-8">
-              {/* 툴바 */}
+            <div className="px-8 pt-6 pb-8">
+              {/* 툴바 - 기획안 목록 + 버튼들 한 줄에 */}
               <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <h2 className="text-lg font-semibold text-[#1a1a1a]">기획안 목록</h2>
                   <span className="text-sm text-[#6b7280]">
                     총 {filteredPlans.length}개

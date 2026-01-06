@@ -327,7 +327,7 @@ function NewPlanContent() {
                 type="text"
                 value={ctaText}
                 onChange={(e) => setCtaText(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] text-sm focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 outline-none transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] bg-white text-sm focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 outline-none transition-all"
                 placeholder="CTA 문장 입력..."
               />
             </div>
@@ -337,7 +337,7 @@ function NewPlanContent() {
                 type="text"
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] text-sm focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 outline-none transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] bg-white text-sm focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 outline-none transition-all"
                 placeholder="카드에 표시될 설명..."
               />
             </div>
