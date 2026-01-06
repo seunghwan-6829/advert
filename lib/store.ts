@@ -309,7 +309,7 @@ export const updatePlan = async (id: string, planData: Partial<Plan>): Promise<P
   if (useSupabaseDB() && supabase) {
     const { data, error } = await supabase
       .from('plans')
-      .update({ ...transformToSupabase(planData as Plan), updated_at: now })
+      .update({ ...transformToSupabaseForUpdate(planData as Plan), updated_at: now })
       .eq('id', id)
       .select()
       .single();
@@ -404,4 +404,14 @@ const transformToSupabase = (plan: Plan) => ({
   row_heights: plan.rowHeights || null,
   created_at: plan.createdAt,
   updated_at: plan.updatedAt,
+});
+
+// 업데이트용 변환 (id, created_at 제외)
+const transformToSupabaseForUpdate = (plan: Plan) => ({
+  brand_id: plan.brandId,
+  title: plan.title,
+  cta_text: plan.ctaText || '',
+  summary: plan.summary || '',
+  storyboard: plan.storyboard,
+  row_heights: plan.rowHeights || null,
 });
