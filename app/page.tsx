@@ -9,6 +9,17 @@ import PlanCard from '@/components/PlanCard';
 import { FileText, CheckCircle, Search, Plus, LayoutGrid, List } from 'lucide-react';
 import Link from 'next/link';
 
+// 스켈레톤 카드 컴포넌트
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-xl p-4 border border-[#f0e6dc] animate-pulse">
+      <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+      <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+      <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+    </div>
+  );
+}
+
 function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -166,16 +177,19 @@ function HomeContent() {
         </div>
 
         {/* 기획안 목록 */}
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-[#6b7280]">불러오는 중...</div>
+        {loading && selectedBrandId ? (
+          // 스켈레톤 로딩
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {[1, 2, 3, 4].map((i) => (
+              <SkeletonCard key={i} />
+            ))}
           </div>
         ) : filteredPlans.length === 0 ? (
           null
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredPlans.map((plan, index) => (
-              <div key={plan.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.05}s` }}>
+              <div key={plan.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.03}s` }}>
                 <PlanCard plan={plan} />
               </div>
             ))}
@@ -186,7 +200,7 @@ function HomeContent() {
               <Link key={plan.id} href={`/plan/${plan.id}?brand=${plan.brandId}`}>
                 <div 
                   className="flex items-center justify-between p-4 bg-white rounded-xl hover:shadow-md transition-all cursor-pointer border border-[#f0e6dc] hover:border-[#fed7aa] animate-fade-in-up"
-                  style={{ animationDelay: `${index * 0.05}s` }}
+                  style={{ animationDelay: `${index * 0.03}s` }}
                 >
                   <div className="flex items-center gap-4">
                     <span className="tag tag-orange">
@@ -209,9 +223,38 @@ function HomeContent() {
   );
 }
 
+// 메인 페이지 스켈레톤
+function PageSkeleton() {
+  return (
+    <div className="flex min-h-screen">
+      {/* 사이드바 스켈레톤 */}
+      <aside className="w-60 h-screen bg-white flex flex-col border-r border-[#f0e6dc] fixed left-0 top-0">
+        <div className="p-4 pb-2">
+          <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
+        </div>
+        <div className="px-4 pb-4 border-b border-[#f0e6dc]">
+          <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        <div className="p-3 space-y-2">
+          <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </aside>
+      
+      {/* 메인 콘텐츠 스켈레톤 */}
+      <main className="flex-1 ml-60 p-8">
+        <div className="flex gap-4 mb-6">
+          <div className="h-16 w-32 bg-gray-200 rounded-xl animate-pulse"></div>
+          <div className="h-16 w-32 bg-gray-200 rounded-xl animate-pulse"></div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">로딩 중...</div>}>
+    <Suspense fallback={<PageSkeleton />}>
       <HomeContent />
     </Suspense>
   );

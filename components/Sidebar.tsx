@@ -158,7 +158,12 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
         {/* 회원가입/로그인 또는 사용자 정보 */}
         <div className="p-3 border-b border-[#f0e6dc]">
           {isLoading ? (
-            <div className="text-sm text-[#9ca3af] text-center py-2">로딩 중...</div>
+            <div className="flex items-center gap-2 px-2 py-2 bg-[#f5f5f5] rounded-lg animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded w-20"></div>
+              </div>
+            </div>
           ) : user ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-2 py-2 bg-[#fff7ed] rounded-lg">
