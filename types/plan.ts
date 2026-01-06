@@ -15,6 +15,7 @@ export interface StoryboardItem {
   id: string;
   order: number;
   image?: string; // 영상/이미지 (base64 또는 URL)
+  timeline: string; // 영상 타임라인
   source: string; // 소스
   effect: string; // 효과
   note: string; // 특이사항
@@ -24,6 +25,7 @@ export interface StoryboardItem {
 // 행 높이 설정
 export interface RowHeights {
   image: number;
+  timeline: number;
   source: number;
   effect: number;
   note: number;

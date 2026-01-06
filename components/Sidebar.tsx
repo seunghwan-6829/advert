@@ -324,7 +324,7 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
             
             <button 
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white bg-[#f97316] hover:bg-[#ea580c] transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-white bg-[#f97316] hover:bg-[#ea580c] transition-colors"
             >
               <LogOut size={16} />
               <span>로그아웃</span>

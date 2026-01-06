@@ -21,8 +21,9 @@ import Link from 'next/link';
 // 기본 행 높이 설정
 const DEFAULT_ROW_HEIGHTS = {
   image: 240,    // 영상 - 더 크게
+  timeline: 80,  // 영상 타임라인
   source: 80,
-  effect: 80,
+  effect: 60,    // 효과 - 살짝 줄임
   note: 60,
   narration: 100,
 };
@@ -243,6 +244,7 @@ function PlanDetailContent() {
 
   const rowLabels = [
     { key: 'image', label: '영상' },
+    { key: 'timeline', label: '타임라인' },
     { key: 'source', label: '소스' },
     { key: 'effect', label: '효과' },
     { key: 'note', label: '특이사항' },
@@ -467,6 +469,19 @@ function PlanDetailContent() {
                         <span className="text-xs">이미지 업로드</span>
                       </button>
                     )}
+                  </div>
+
+                  {/* 타임라인 섹션 */}
+                  <div 
+                    className="border-b border-[#e5e7eb]"
+                    style={{ height: rowHeights.timeline }}
+                  >
+                    <textarea
+                      value={item.timeline || ''}
+                      onChange={(e) => handleUpdateColumn(index, 'timeline', e.target.value)}
+                      placeholder="타임라인..."
+                      className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
+                    />
                   </div>
 
                   <div 

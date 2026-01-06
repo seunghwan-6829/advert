@@ -137,7 +137,7 @@ function HomeContent() {
         {!authLoading && canViewProjects && (
           <>
             {/* 상단 통계 + 검색바 (고정) */}
-            <div className="sticky top-0 z-10 bg-[#f8f6f2] px-8 py-5">
+            <div className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-8 py-5">
               <div className="flex items-center gap-4">
                 {/* 통계 카드들 */}
                 <div className="stat-card">
