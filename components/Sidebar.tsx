@@ -325,14 +325,12 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
 
         {/* 하단 메뉴 */}
         <div className="p-3 border-t border-[#f0e6dc] space-y-1">
-          {/* 관리자 전용 페이지 - 로그인한 관리자 또는 테스트용 */}
-          {(user && isAdmin) || (!user) ? (
-            <Link href="/admin">
-              <button className="w-full text-left px-3 py-2 mb-1 bg-[#f0fdf4] rounded-lg hover:bg-[#dcfce7] transition-colors">
-                <p className="text-sm text-[#15803d] font-medium">관리자 전용 페이지</p>
-              </button>
-            </Link>
-          ) : null}
+          {/* 관리자 전용 페이지 - 테스트용으로 항상 표시 */}
+          <Link href="/admin">
+            <button className="w-full text-left px-3 py-2 mb-1 bg-[#f0fdf4] rounded-lg hover:bg-[#dcfce7] transition-colors">
+              <p className="text-sm text-[#15803d] font-medium">관리자 전용 페이지</p>
+            </button>
+          </Link>
           
           {user ? (
             <button 
