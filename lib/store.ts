@@ -26,17 +26,18 @@ export const getBrands = async (): Promise<Brand[]> => {
     const { data, error } = await supabase
       .from('brands')
       .select('*')
+      .is('deleted_at', null)
       .order('order', { ascending: true });
     
     if (error) {
       console.error('Supabase error:', error);
-      return getLocalBrands();
+      return getLocalBrands().filter(b => !b.deletedAt);
     }
     
     return data?.map(transformBrandFromSupabase) || [];
   }
   
-  return getLocalBrands().sort((a, b) => a.order - b.order);
+  return getLocalBrands().filter(b => !b.deletedAt).sort((a, b) => a.order - b.order);
 };
 
 // 단일 브랜드 가져오기
@@ -134,7 +135,40 @@ const updateLocalBrand = (id: string, brandData: Partial<Brand>, now: string): B
 };
 
 // 브랜드 삭제
+// 브랜드를 휴지통으로 이동 (soft delete)
 export const deleteBrand = async (id: string): Promise<boolean> => {
+  const now = new Date().toISOString();
+  
+  if (useSupabaseDB() && supabase) {
+    const { error } = await supabase
+      .from('brands')
+      .update({ deleted_at: now })
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return softDeleteLocalBrand(id, now);
+    }
+    
+    return true;
+  }
+  
+  return softDeleteLocalBrand(id, now);
+};
+
+const softDeleteLocalBrand = (id: string, deletedAt: string): boolean => {
+  const brands = getLocalBrands();
+  const index = brands.findIndex((b) => b.id === id);
+  if (index !== -1) {
+    brands[index].deletedAt = deletedAt;
+    setLocalBrands(brands);
+    return true;
+  }
+  return false;
+};
+
+// 브랜드 영구 삭제 (휴지통에서 완전 삭제)
+export const permanentDeleteBrand = async (id: string): Promise<boolean> => {
   if (useSupabaseDB() && supabase) {
     // 먼저 해당 브랜드의 기획안들의 brandId를 null로 설정
     await supabase
@@ -149,16 +183,16 @@ export const deleteBrand = async (id: string): Promise<boolean> => {
     
     if (error) {
       console.error('Supabase error:', error);
-      return deleteLocalBrand(id);
+      return permanentDeleteLocalBrand(id);
     }
     
     return true;
   }
   
-  return deleteLocalBrand(id);
+  return permanentDeleteLocalBrand(id);
 };
 
-const deleteLocalBrand = (id: string): boolean => {
+const permanentDeleteLocalBrand = (id: string): boolean => {
   // 해당 브랜드의 기획안들도 함께 삭제
   const plans = getLocalPlans();
   const filteredPlans = plans.filter(p => p.brandId !== id);
@@ -169,6 +203,56 @@ const deleteLocalBrand = (id: string): boolean => {
   const filtered = brands.filter((b) => b.id !== id);
   setLocalBrands(filtered);
   return true;
+};
+
+// 휴지통에서 브랜드 복구
+export const restoreBrand = async (id: string): Promise<boolean> => {
+  if (useSupabaseDB() && supabase) {
+    const { error } = await supabase
+      .from('brands')
+      .update({ deleted_at: null })
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return restoreLocalBrand(id);
+    }
+    
+    return true;
+  }
+  
+  return restoreLocalBrand(id);
+};
+
+const restoreLocalBrand = (id: string): boolean => {
+  const brands = getLocalBrands();
+  const index = brands.findIndex((b) => b.id === id);
+  if (index !== -1) {
+    delete brands[index].deletedAt;
+    setLocalBrands(brands);
+    return true;
+  }
+  return false;
+};
+
+// 휴지통 목록 가져오기 (삭제된 브랜드들)
+export const getDeletedBrands = async (): Promise<Brand[]> => {
+  if (useSupabaseDB() && supabase) {
+    const { data, error } = await supabase
+      .from('brands')
+      .select('*')
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return getLocalBrands().filter(b => b.deletedAt);
+    }
+    
+    return data?.map(transformBrandFromSupabase) || [];
+  }
+  
+  return getLocalBrands().filter(b => b.deletedAt);
 };
 
 // 브랜드 순서 변경
@@ -207,6 +291,7 @@ const transformBrandFromSupabase = (data: any): Brand => ({
   order: data.order || 0,
   createdAt: data.created_at,
   updatedAt: data.updated_at,
+  deletedAt: data.deleted_at || undefined,
 });
 
 const transformBrandToSupabase = (brand: Partial<Brand>) => ({
@@ -279,6 +364,7 @@ export const createPlan = async (planData: Omit<Plan, 'id' | 'createdAt' | 'upda
   const newPlan: Plan = {
     ...planData,
     id: uuidv4(),
+    reference: planData.reference || '',
     ctaText: planData.ctaText || '',
     summary: planData.summary || '',
     createdAt: now,
@@ -395,6 +481,7 @@ const transformFromSupabase = (data: any): Plan => ({
   id: data.id,
   brandId: data.brand_id,
   title: data.title,
+  reference: data.reference || '',
   ctaText: data.cta_text || '',
   summary: data.summary || '',
   storyboard: data.storyboard || [],
@@ -407,6 +494,7 @@ const transformToSupabase = (plan: Plan) => ({
   id: plan.id,
   brand_id: plan.brandId,
   title: plan.title,
+  reference: plan.reference || '',
   cta_text: plan.ctaText || '',
   summary: plan.summary || '',
   storyboard: plan.storyboard,
@@ -419,6 +507,7 @@ const transformToSupabase = (plan: Plan) => ({
 const transformToSupabaseForUpdate = (plan: Plan) => ({
   brand_id: plan.brandId,
   title: plan.title,
+  reference: plan.reference || '',
   cta_text: plan.ctaText || '',
   summary: plan.summary || '',
   storyboard: plan.storyboard,

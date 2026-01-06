@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, FileText, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash2, User } from 'lucide-react';
+import { Plus, FileText, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash2, User, Trash, RotateCcw, X } from 'lucide-react';
 import Link from 'next/link';
 import { Plan, Brand } from '@/types/plan';
 import { useAuth } from '@/lib/AuthContext';
-import { getBrands, createBrand, updateBrand, deleteBrand } from '@/lib/store';
+import { getBrands, createBrand, updateBrand, deleteBrand, getDeletedBrands, restoreBrand, permanentDeleteBrand } from '@/lib/store';
 import AccessDeniedModal from './AccessDeniedModal';
 import BrandModal from './BrandModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
@@ -22,6 +22,9 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
   const { user, isAdmin, permissions, signOut, isLoading } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isManageMode, setIsManageMode] = useState(false);
+  const [showTrashModal, setShowTrashModal] = useState(false);
+  const [deletedBrands, setDeletedBrands] = useState<Brand[]>([]);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   // 권한 체크: 관리자이거나 프로젝트 열람 권한이 있는 경우
   const canViewProjects = isAdmin || permissions?.canViewProjects;
@@ -122,6 +125,34 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
   const handleLogout = async () => {
     await signOut();
     setIsManageMode(false);
+  };
+
+  // 휴지통 열기
+  const handleOpenTrash = async () => {
+    const deleted = await getDeletedBrands();
+    setDeletedBrands(deleted);
+    setShowTrashModal(true);
+  };
+
+  // 브랜드 복구
+  const handleRestoreBrand = async (id: string) => {
+    setRestoringId(id);
+    const success = await restoreBrand(id);
+    if (success) {
+      setDeletedBrands(prev => prev.filter(b => b.id !== id));
+      // 브랜드 목록 새로고침
+      const updatedBrands = await getBrands();
+      setBrands(updatedBrands);
+    }
+    setRestoringId(null);
+  };
+
+  // 브랜드 영구 삭제
+  const handlePermanentDelete = async (id: string, name: string) => {
+    if (confirm(`"${name}" 프로젝트를 영구적으로 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      await permanentDeleteBrand(id);
+      setDeletedBrands(prev => prev.filter(b => b.id !== id));
+    }
   };
 
   // 로그인/회원가입 모달 열기
@@ -313,6 +344,16 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
         {/* 하단 메뉴 - 로그인 한 경우만 표시 */}
         {user && (
           <div className="p-3 border-t border-[#f0e6dc] space-y-1">
+            {/* 휴지통 - 관리자만 표시 */}
+            {isAdmin && (
+              <button
+                onClick={handleOpenTrash}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 mb-1 rounded-lg text-sm text-[#6b7280] hover:bg-[#f5f5f5] transition-colors"
+              >
+                <Trash size={16} />
+                <span>휴지통</span>
+              </button>
+            )}
             {/* 관리자 전용 페이지 - 관리자만 표시 */}
             {isAdmin && (
               <Link href="/admin">
@@ -367,6 +408,81 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
         onClose={() => setShowAuthModal(false)}
         defaultMode={authModalMode}
       />
+
+      {/* 휴지통 모달 */}
+      {showTrashModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Trash size={20} className="text-[#6b7280]" />
+                <h3 className="text-lg font-bold text-[#1a1a1a]">휴지통</h3>
+              </div>
+              <button
+                onClick={() => setShowTrashModal(false)}
+                className="p-2 hover:bg-[#f5f5f5] rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <p className="text-sm text-[#6b7280] mb-4">
+              삭제된 프로젝트를 복구하거나 영구 삭제할 수 있습니다.
+            </p>
+            
+            <div className="flex-1 overflow-y-auto">
+              {deletedBrands.length === 0 ? (
+                <div className="text-center py-8 text-[#9ca3af]">
+                  <Trash size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">휴지통이 비어있습니다</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {deletedBrands.map((brand) => (
+                    <div
+                      key={brand.id}
+                      className="flex items-center justify-between p-3 rounded-xl border border-[#e5e7eb] bg-[#fafafa]"
+                    >
+                      <div className="flex items-center gap-3">
+                        {brand.logo ? (
+                          <img src={brand.logo} alt={brand.name} className="w-8 h-8 rounded-lg object-cover" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-[#f0e6dc] flex items-center justify-center">
+                            <FileText size={14} className="text-[#9ca3af]" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-[#1a1a1a]">{brand.name}</p>
+                          <p className="text-xs text-[#9ca3af]">
+                            삭제: {brand.deletedAt ? new Date(brand.deletedAt).toLocaleDateString('ko-KR') : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleRestoreBrand(brand.id)}
+                          disabled={restoringId === brand.id}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-[#22c55e] hover:bg-[#f0fdf4] transition-colors disabled:opacity-50"
+                        >
+                          <RotateCcw size={14} />
+                          {restoringId === brand.id ? '복구 중...' : '복구'}
+                        </button>
+                        <button
+                          onClick={() => handlePermanentDelete(brand.id, brand.name)}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-[#ef4444] hover:bg-[#fef2f2] transition-colors"
+                        >
+                          <Trash2 size={14} />
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

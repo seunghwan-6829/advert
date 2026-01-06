@@ -36,6 +36,7 @@ function NewPlanContent() {
   const [brandName, setBrandName] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
+  const [reference, setReference] = useState('');
   const [ctaText, setCtaText] = useState('');
   const [summary, setSummary] = useState('');
   const [storyboard, setStoryboard] = useState<StoryboardItem[]>([
@@ -65,6 +66,7 @@ function NewPlanContent() {
 
   const hasUnsavedChanges = () => {
     if (title.trim()) return true;
+    if (reference.trim()) return true;
     if (ctaText.trim()) return true;
     if (summary.trim()) return true;
     return storyboard.some(item => 
@@ -117,6 +119,7 @@ function NewPlanContent() {
     await createPlan({
       title,
       brandId,
+      reference,
       ctaText,
       summary,
       storyboard,
@@ -141,6 +144,7 @@ function NewPlanContent() {
     await createPlan({
       title,
       brandId,
+      reference,
       ctaText,
       summary,
       storyboard,
@@ -319,9 +323,19 @@ function NewPlanContent() {
             />
           </div>
           
-          {/* 오른쪽: CTA 문장 & 카드 미리보기 */}
+          {/* 오른쪽: 레퍼런스 & CTA 문장 & 카드 미리보기 */}
           <div className="flex gap-4 flex-shrink-0">
-            <div className="w-80">
+            <div className="w-64">
+              <label className="block text-sm font-medium text-[#6b7280] mb-2">레퍼런스</label>
+              <input
+                type="text"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] bg-white text-sm focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 outline-none transition-all"
+                placeholder="레퍼런스 입력..."
+              />
+            </div>
+            <div className="w-64">
               <label className="block text-sm font-medium text-[#6b7280] mb-2">CTA 문장</label>
               <input
                 type="text"
@@ -331,7 +345,7 @@ function NewPlanContent() {
                 placeholder="CTA 문장 입력..."
               />
             </div>
-            <div className="w-80">
+            <div className="w-64">
               <label className="block text-sm font-medium text-[#6b7280] mb-2">카드 미리보기</label>
               <input
                 type="text"

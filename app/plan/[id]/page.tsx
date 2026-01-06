@@ -15,8 +15,13 @@ import {
   Download,
   X,
   Image as ImageIcon,
+  FileDown,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
 
 // 기본 행 높이 설정
 const DEFAULT_ROW_HEIGHTS = {
@@ -43,6 +48,7 @@ function PlanDetailContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   
   const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
   const [resizing, setResizing] = useState<string | null>(null);
@@ -138,6 +144,87 @@ function PlanDetailContent() {
     } else {
       router.push(backUrl);
     }
+  };
+
+  // 엑셀로 내보내기
+  const handleExportExcel = () => {
+    if (!plan) return;
+    
+    const data = plan.storyboard.map((item, index) => ({
+      '번호': index + 1,
+      '타임라인': item.timeline || '',
+      '소스': item.source || '',
+      '효과': item.effect || '',
+      '특이사항': item.note || '',
+      '대본(나레이션)': item.narration || '',
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '스토리보드');
+    
+    // 기본 정보 시트 추가
+    const infoData = [
+      { '항목': '제목', '내용': plan.title },
+      { '항목': '레퍼런스', '내용': plan.reference || '' },
+      { '항목': 'CTA 문장', '내용': plan.ctaText || '' },
+      { '항목': '카드 미리보기', '내용': plan.summary || '' },
+      { '항목': '생성일', '내용': new Date(plan.createdAt).toLocaleDateString('ko-KR') },
+    ];
+    const infoWs = XLSX.utils.json_to_sheet(infoData);
+    XLSX.utils.book_append_sheet(wb, infoWs, '기본정보');
+    
+    XLSX.writeFile(wb, `${plan.title}_기획안.xlsx`);
+    setShowExportModal(false);
+  };
+
+  // PDF로 내보내기
+  const handleExportPDF = () => {
+    if (!plan) return;
+    
+    const doc = new jsPDF();
+    
+    // 제목
+    doc.setFontSize(18);
+    doc.text(plan.title, 20, 20);
+    
+    // 기본 정보
+    doc.setFontSize(10);
+    let y = 35;
+    if (plan.reference) {
+      doc.text(`Reference: ${plan.reference}`, 20, y);
+      y += 7;
+    }
+    if (plan.ctaText) {
+      doc.text(`CTA: ${plan.ctaText}`, 20, y);
+      y += 7;
+    }
+    doc.text(`Created: ${new Date(plan.createdAt).toLocaleDateString('ko-KR')}`, 20, y);
+    y += 15;
+    
+    // 스토리보드
+    doc.setFontSize(12);
+    doc.text('Storyboard', 20, y);
+    y += 10;
+    
+    doc.setFontSize(9);
+    plan.storyboard.forEach((item, index) => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(`#${index + 1}`, 20, y);
+      y += 5;
+      if (item.timeline) { doc.text(`Timeline: ${item.timeline}`, 25, y); y += 5; }
+      if (item.source) { doc.text(`Source: ${item.source}`, 25, y); y += 5; }
+      if (item.effect) { doc.text(`Effect: ${item.effect}`, 25, y); y += 5; }
+      if (item.note) { doc.text(`Note: ${item.note}`, 25, y); y += 5; }
+      if (item.narration) { doc.text(`Narration: ${item.narration}`, 25, y); y += 5; }
+      y += 5;
+    });
+    
+    doc.save(`${plan.title}_기획안.pdf`);
+    setShowExportModal(false);
   };
 
   const handleDelete = async () => {
@@ -294,6 +381,48 @@ function PlanDetailContent() {
         </div>
       )}
 
+      {/* 내보내기 모달 */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-[#1a1a1a]">내보내기</h3>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="p-2 hover:bg-[#f5f5f5] rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-[#6b7280] mb-6">
+              기획안을 어떤 형식으로 내보내시겠습니까?
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-[#e5e7eb] hover:border-[#22c55e] hover:bg-[#f0fdf4] transition-all"
+              >
+                <FileSpreadsheet size={22} className="text-[#22c55e]" />
+                <div className="text-left">
+                  <div className="font-semibold text-[#1a1a1a]">Excel 파일</div>
+                  <div className="text-xs text-[#6b7280]">.xlsx 형식으로 저장</div>
+                </div>
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-[#e5e7eb] hover:border-[#ef4444] hover:bg-[#fef2f2] transition-all"
+              >
+                <FileText size={22} className="text-[#ef4444]" />
+                <div className="text-left">
+                  <div className="font-semibold text-[#1a1a1a]">PDF 파일</div>
+                  <div className="text-xs text-[#6b7280]">.pdf 형식으로 저장</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <input
         type="file"
         ref={fileInputRef}
@@ -321,6 +450,13 @@ function PlanDetailContent() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-[#6b7280] hover:bg-[#f5f5f5] border border-[#e5e7eb] transition-all"
+            >
+              <FileDown size={18} />
+              내보내기
+            </button>
             <button
               onClick={handleDelete}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-[#ef4444] hover:bg-[#fef2f2] border border-transparent hover:border-[#fecaca] transition-all"
@@ -358,9 +494,19 @@ function PlanDetailContent() {
             </p>
           </div>
           
-          {/* 오른쪽: CTA 문장 & 카드 미리보기 */}
+          {/* 오른쪽: 레퍼런스 & CTA 문장 & 카드 미리보기 */}
           <div className="flex gap-4 flex-shrink-0">
-            <div className="w-80">
+            <div className="w-64">
+              <label className="block text-sm font-medium text-[#6b7280] mb-2">레퍼런스</label>
+              <input
+                type="text"
+                value={plan.reference || ''}
+                onChange={(e) => setPlan({ ...plan, reference: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] bg-white text-sm focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 outline-none transition-all"
+                placeholder="레퍼런스 입력..."
+              />
+            </div>
+            <div className="w-64">
               <label className="block text-sm font-medium text-[#6b7280] mb-2">CTA 문장</label>
               <input
                 type="text"
@@ -370,7 +516,7 @@ function PlanDetailContent() {
                 placeholder="CTA 문장 입력..."
               />
             </div>
-            <div className="w-80">
+            <div className="w-64">
               <label className="block text-sm font-medium text-[#6b7280] mb-2">카드 미리보기</label>
               <input
                 type="text"

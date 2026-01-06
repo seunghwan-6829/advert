@@ -8,6 +8,7 @@ export interface Brand {
   order: number; // 정렬 순서
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string; // 휴지통 이동 시간 (soft delete)
 }
 
 // 스토리보드 아이템 (가로 열 방식)
@@ -36,6 +37,7 @@ export interface Plan {
   id: string;
   brandId: string; // 소속 브랜드 ID (필수)
   title: string; // 기획안 제목
+  reference?: string; // 레퍼런스
   ctaText?: string; // CTA 문장
   summary?: string; // 카드 미리보기 텍스트
   storyboard: StoryboardItem[]; // 스토리보드
