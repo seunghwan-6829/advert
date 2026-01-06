@@ -26,10 +26,15 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
   // 권한 체크: 관리자이거나 프로젝트 열람 권한이 있는 경우
   const canViewProjects = isAdmin || permissions?.canViewProjects;
   
-  // 허용된 브랜드 필터링 (관리자는 모두 볼 수 있음)
+  // 허용된 브랜드 필터링
+  // - 관리자: 모든 브랜드
+  // - canViewProjects가 true이고 allowedBrandIds가 비어있음: 전체 브랜드
+  // - canViewProjects가 true이고 allowedBrandIds에 값이 있음: 해당 브랜드만
   const visibleBrands = isAdmin 
     ? brands 
-    : brands.filter(b => permissions?.allowedBrandIds?.includes(b.id));
+    : (permissions?.canViewProjects && permissions?.allowedBrandIds?.length === 0)
+      ? brands  // 전체 접근
+      : brands.filter(b => permissions?.allowedBrandIds?.includes(b.id));
   
   // 모달 상태
   const [showAccessDenied, setShowAccessDenied] = useState(false);
