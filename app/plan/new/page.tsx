@@ -60,7 +60,12 @@ export default function NewPlanPage() {
       brandId: formData.brandId || undefined,
     });
     setSaving(false);
-    router.push('/');
+    // 선택한 프로젝트가 있으면 해당 프로젝트로 이동
+    if (formData.brandId) {
+      router.push(`/?brand=${formData.brandId}`);
+    } else {
+      router.push('/');
+    }
   };
 
   const handleFieldChange = (field: string, value: unknown) => {

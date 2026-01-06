@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Plan } from '@/types/plan';
 import { getPlans } from '@/lib/store';
 import Sidebar from '@/components/Sidebar';
@@ -8,12 +9,22 @@ import PlanCard from '@/components/PlanCard';
 import { FileText, Star, CheckCircle, TrendingUp, Search, Keyboard, Mic, Settings, Plus, LayoutGrid, List } from 'lucide-react';
 import Link from 'next/link';
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+
+  // URL에서 brand 파라미터 읽기
+  useEffect(() => {
+    const brandFromUrl = searchParams.get('brand');
+    if (brandFromUrl) {
+      setSelectedBrandId(brandFromUrl);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -48,13 +59,23 @@ export default function Home() {
     progress: filteredPlans.length > 0 ? Math.round((0 / filteredPlans.length) * 100) : 0,
   };
 
+  // 브랜드 선택 시 URL 업데이트
+  const handleSelectBrand = (brandId: string | null) => {
+    setSelectedBrandId(brandId);
+    if (brandId) {
+      router.push(`/?brand=${brandId}`, { scroll: false });
+    } else {
+      router.push('/', { scroll: false });
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
       {/* 사이드바 */}
       <Sidebar 
         plans={plans} 
         selectedBrandId={selectedBrandId}
-        onSelectBrand={setSelectedBrandId}
+        onSelectBrand={handleSelectBrand}
       />
 
       {/* 메인 콘텐츠 */}
@@ -248,5 +269,13 @@ export default function Home() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">로딩 중...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
