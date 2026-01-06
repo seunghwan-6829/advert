@@ -19,9 +19,17 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelectBrand }: SidebarProps) {
-  const { user, isAdmin, signOut, isLoading } = useAuth();
+  const { user, isAdmin, permissions, signOut, isLoading } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isManageMode, setIsManageMode] = useState(false);
+
+  // 권한 체크: 관리자이거나 프로젝트 열람 권한이 있는 경우
+  const canViewProjects = isAdmin || permissions?.canViewProjects;
+  
+  // 허용된 브랜드 필터링 (관리자는 모두 볼 수 있음)
+  const visibleBrands = isAdmin 
+    ? brands 
+    : brands.filter(b => permissions?.allowedBrandIds?.includes(b.id));
   
   // 모달 상태
   const [showAccessDenied, setShowAccessDenied] = useState(false);
@@ -180,40 +188,45 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
           )}
         </div>
 
-        {/* 프로젝트 관리 */}
-        <div className="px-3 pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <button
-              onClick={handleManageClick}
-              className={`text-sm font-medium flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
-                isManageMode 
-                  ? 'text-[#f97316] bg-[#fff7ed]' 
-                  : 'text-[#1a1a1a] hover:bg-[#fff7ed]'
-              }`}
-            >
-              <FolderKanban size={16} />
-              프로젝트 관리
-            </button>
-            <button 
-              onClick={handleAddClick}
-              className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#fff7ed] text-[#6b7280] hover:text-[#f97316] transition-colors"
-            >
-              <Plus size={16} />
-            </button>
+        {/* 프로젝트 관리 - 권한이 있는 경우만 표시 */}
+        {canViewProjects && (
+          <div className="px-3 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <button
+                onClick={handleManageClick}
+                className={`text-sm font-medium flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
+                  isManageMode 
+                    ? 'text-[#f97316] bg-[#fff7ed]' 
+                    : 'text-[#1a1a1a] hover:bg-[#fff7ed]'
+                }`}
+              >
+                <FolderKanban size={16} />
+                프로젝트 관리
+              </button>
+              {isAdmin && (
+                <button 
+                  onClick={handleAddClick}
+                  className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#fff7ed] text-[#6b7280] hover:text-[#f97316] transition-colors"
+                >
+                  <Plus size={16} />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 브랜드/프로젝트 목록 */}
-        <div className="flex-1 overflow-y-auto px-3">
-          <nav className="space-y-1">
-            {brands.length === 0 ? (
-              <p className="text-xs text-[#9ca3af] px-2 py-4">
-                아직 프로젝트가 없습니다
-              </p>
-            ) : (
-              <>
-                {/* 브랜드 목록 */}
-                {brands.map((brand) => {
+        {/* 브랜드/프로젝트 목록 - 권한이 있는 경우만 표시 */}
+        {canViewProjects && (
+          <div className="flex-1 overflow-y-auto px-3">
+            <nav className="space-y-1">
+              {visibleBrands.length === 0 ? (
+                <p className="text-xs text-[#9ca3af] px-2 py-4">
+                  {isAdmin ? '아직 프로젝트가 없습니다' : '열람 가능한 프로젝트가 없습니다'}
+                </p>
+              ) : (
+                <>
+                  {/* 브랜드 목록 */}
+                  {visibleBrands.map((brand) => {
                   const brandPlans = getPlansByBrand(brand.id);
                   const isSelected = selectedBrandId === brand.id;
                   
@@ -268,20 +281,33 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
                       </div>
                     </div>
                   );
-                })}
-              </>
-            )}
-          </nav>
-        </div>
+                  })}
+                </>
+              )}
+            </nav>
+          </div>
+        )}
+
+        {/* 권한 없는 경우 안내 메시지 */}
+        {!canViewProjects && user && (
+          <div className="flex-1 px-3 pt-4">
+            <p className="text-xs text-[#9ca3af] px-2 py-4 text-center">
+              프로젝트 열람 권한이 없습니다.<br />
+              관리자에게 문의하세요.
+            </p>
+          </div>
+        )}
 
         {/* 하단 메뉴 */}
         <div className="p-3 border-t border-[#f0e6dc] space-y-1">
-          {/* 관리자 전용 페이지 */}
-          <Link href="/admin">
-            <button className="w-full text-left px-3 py-2 mb-1 bg-[#1a1a1a] rounded-lg hover:bg-[#333333] transition-colors">
-              <p className="text-sm text-white font-medium">관리자 전용 페이지</p>
-            </button>
-          </Link>
+          {/* 관리자 전용 페이지 - 관리자만 표시 */}
+          {isAdmin && (
+            <Link href="/admin">
+              <button className="w-full px-3 py-2 mb-1 bg-[#1a1a1a] rounded-lg hover:bg-[#333333] transition-colors">
+                <p className="text-sm text-white font-medium text-center">관리자 전용 페이지</p>
+              </button>
+            </Link>
+          )}
           
           {user ? (
             <button 

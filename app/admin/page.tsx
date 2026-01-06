@@ -3,7 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
-import { AppUser, VisitLog, getUsers, getVisitLogs, getDailyVisitStats, getUniqueVisitors, updateUserAccess, toggleUserActive, deleteUser } from '@/lib/adminStore';
+import { 
+  UserPermission, 
+  VisitLog, 
+  getAllUserPermissions, 
+  upsertUserPermission, 
+  deleteUserPermission,
+  getVisitLogs, 
+  getDailyVisitStats, 
+  getUniqueVisitors 
+} from '@/lib/adminStore';
 import { getBrands } from '@/lib/store';
 import { Brand } from '@/types/plan';
 import * as XLSX from 'xlsx';
@@ -15,37 +24,44 @@ export default function AdminPage() {
   const { user, isAdmin, isLoading } = useAuth();
   
   const [activeTab, setActiveTab] = useState<Tab>('users');
-  const [users, setUsers] = useState<AppUser[]>([]);
+  const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [visits, setVisits] = useState<VisitLog[]>([]);
   const [dailyStats, setDailyStats] = useState<{ date: string; count: number }[]>([]);
   const [uniqueVisitors, setUniqueVisitors] = useState(0);
-  const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
-  const [showAccessModal, setShowAccessModal] = useState(false);
+  
+  // 모달 상태
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedPermission, setSelectedPermission] = useState<UserPermission | null>(null);
+  
+  // 권한 편집 상태
+  const [editCanCreatePlans, setEditCanCreatePlans] = useState(false);
+  const [editCanViewProjects, setEditCanViewProjects] = useState(false);
+  const [editAllowedBrands, setEditAllowedBrands] = useState<string[]>([]);
 
-  // 임시: 로그인 없이도 관리자 페이지 접근 허용 (테스트용)
-  // useEffect(() => {
-  //   if (!isLoading && !isAdmin) {
-  //     router.push('/');
-  //   }
-  // }, [isAdmin, isLoading, router]);
+  // 관리자가 아니면 리다이렉트
+  useEffect(() => {
+    if (!isLoading && !isAdmin) {
+      router.push('/');
+    }
+  }, [isAdmin, isLoading, router]);
 
   useEffect(() => {
-    // 임시: 항상 데이터 로드 (테스트용)
-    loadData();
-  }, []);
+    if (isAdmin) {
+      loadData();
+    }
+  }, [isAdmin]);
 
   const loadData = async () => {
-    const [usersData, brandsData, visitsData, statsData, uniqueData] = await Promise.all([
-      getUsers(),
+    const [permissionsData, brandsData, visitsData, statsData, uniqueData] = await Promise.all([
+      getAllUserPermissions(),
       getBrands(),
       getVisitLogs(30),
       getDailyVisitStats(7),
       getUniqueVisitors(30),
     ]);
-    setUsers(usersData);
+    setPermissions(permissionsData);
     setBrands(brandsData);
     setVisits(visitsData);
     setDailyStats(statsData);
@@ -58,16 +74,15 @@ export default function AdminPage() {
     let filename = '';
 
     if (type === 'users') {
-      data = users.map(u => ({
-        '이메일': u.email,
-        '가입일': new Date(u.createdAt).toLocaleDateString('ko-KR'),
-        '마지막 로그인': u.lastSignIn ? new Date(u.lastSignIn).toLocaleDateString('ko-KR') : '-',
-        '상태': u.isActive ? '활성' : '비활성',
-        '접근 가능 프로젝트': u.accessibleBrands.length > 0 
-          ? u.accessibleBrands.map(id => brands.find(b => b.id === id)?.name || id).join(', ')
+      data = permissions.map(p => ({
+        '이메일': p.email,
+        '기획안 생성 권한': p.canCreatePlans ? 'O' : 'X',
+        '프로젝트 열람 권한': p.canViewProjects ? 'O' : 'X',
+        '허용된 프로젝트': p.allowedBrandIds.length > 0 
+          ? p.allowedBrandIds.map(id => brands.find(b => b.id === id)?.name || id).join(', ')
           : '전체',
       }));
-      filename = `유저목록_${new Date().toISOString().split('T')[0]}.xlsx`;
+      filename = `유저권한_${new Date().toISOString().split('T')[0]}.xlsx`;
     } else {
       data = visits.map(v => ({
         '이메일': v.userEmail,
@@ -83,30 +98,41 @@ export default function AdminPage() {
     XLSX.writeFile(wb, filename);
   };
 
-  // 접근 권한 설정
-  const handleAccessSave = async () => {
-    if (selectedUser) {
-      await updateUserAccess(selectedUser.id, selectedBrands);
+  // 권한 편집 모달 열기
+  const openPermissionModal = (permission: UserPermission) => {
+    setSelectedPermission(permission);
+    setEditCanCreatePlans(permission.canCreatePlans);
+    setEditCanViewProjects(permission.canViewProjects);
+    setEditAllowedBrands(permission.allowedBrandIds);
+    setShowPermissionModal(true);
+  };
+
+  // 권한 저장
+  const handlePermissionSave = async () => {
+    if (selectedPermission) {
+      await upsertUserPermission(
+        selectedPermission.userId,
+        selectedPermission.email,
+        {
+          canCreatePlans: editCanCreatePlans,
+          canViewProjects: editCanViewProjects,
+          allowedBrandIds: editAllowedBrands,
+        }
+      );
       await loadData();
-      setShowAccessModal(false);
-      setSelectedUser(null);
+      setShowPermissionModal(false);
+      setSelectedPermission(null);
     }
   };
 
-  // 유저 삭제
-  const handleDeleteUser = async () => {
-    if (selectedUser) {
-      await deleteUser(selectedUser.id);
+  // 권한 삭제
+  const handleDeletePermission = async () => {
+    if (selectedPermission) {
+      await deleteUserPermission(selectedPermission.userId);
       await loadData();
       setShowDeleteModal(false);
-      setSelectedUser(null);
+      setSelectedPermission(null);
     }
-  };
-
-  // 유저 활성화/비활성화
-  const handleToggleActive = async (userId: string, currentStatus: boolean) => {
-    await toggleUserActive(userId, !currentStatus);
-    await loadData();
   };
 
   if (isLoading) {
@@ -117,10 +143,9 @@ export default function AdminPage() {
     );
   }
 
-  // 임시: 관리자 체크 비활성화 (테스트용)
-  // if (!isAdmin) {
-  //   return null;
-  // }
+  if (!isAdmin) {
+    return null;
+  }
 
   const totalVisits = visits.length;
   const todayVisits = visits.filter(v => 
@@ -158,7 +183,7 @@ export default function AdminPage() {
                 : 'text-[#86868b] hover:text-[#1d1d1f]'
             }`}
           >
-            유저 관리
+            유저 권한 관리
           </button>
           <button
             onClick={() => setActiveTab('analytics')}
@@ -172,12 +197,12 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* 유저 관리 탭 */}
+        {/* 유저 권한 관리 탭 */}
         {activeTab === 'users' && (
           <div>
             {/* 상단 액션 */}
             <div className="flex items-center justify-between mb-6">
-              <p className="text-[#86868b]">총 {users.length}명의 유저</p>
+              <p className="text-[#86868b]">총 {permissions.length}명의 유저</p>
               <button
                 onClick={() => exportToExcel('users')}
                 className="px-4 py-2 bg-[#1d1d1f] text-white text-sm font-medium rounded-lg hover:bg-[#424245] transition-colors"
@@ -192,65 +217,61 @@ export default function AdminPage() {
                 <thead>
                   <tr className="border-b border-[#d2d2d7]">
                     <th className="text-left px-6 py-4 text-xs font-medium text-[#86868b] uppercase tracking-wider">이메일</th>
-                    <th className="text-left px-6 py-4 text-xs font-medium text-[#86868b] uppercase tracking-wider">가입일</th>
-                    <th className="text-left px-6 py-4 text-xs font-medium text-[#86868b] uppercase tracking-wider">상태</th>
-                    <th className="text-left px-6 py-4 text-xs font-medium text-[#86868b] uppercase tracking-wider">접근 권한</th>
+                    <th className="text-center px-6 py-4 text-xs font-medium text-[#86868b] uppercase tracking-wider">기획안 생성</th>
+                    <th className="text-center px-6 py-4 text-xs font-medium text-[#86868b] uppercase tracking-wider">프로젝트 열람</th>
+                    <th className="text-left px-6 py-4 text-xs font-medium text-[#86868b] uppercase tracking-wider">허용된 프로젝트</th>
                     <th className="text-right px-6 py-4 text-xs font-medium text-[#86868b] uppercase tracking-wider">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#d2d2d7]">
-                  {users.length === 0 ? (
+                  {permissions.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-[#86868b]">
-                        등록된 유저가 없습니다
+                        등록된 유저 권한이 없습니다
                       </td>
                     </tr>
                   ) : (
-                    users.map((u) => (
-                      <tr key={u.id} className="hover:bg-[#f5f5f7] transition-colors">
+                    permissions.map((p) => (
+                      <tr key={p.id} className="hover:bg-[#f5f5f7] transition-colors">
                         <td className="px-6 py-4">
-                          <p className="text-[#1d1d1f] font-medium">{u.email}</p>
+                          <p className="text-[#1d1d1f] font-medium">{p.email}</p>
                         </td>
-                        <td className="px-6 py-4 text-[#86868b]">
-                          {new Date(u.createdAt).toLocaleDateString('ko-KR')}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                            u.isActive 
+                        <td className="px-6 py-4 text-center">
+                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                            p.canCreatePlans 
                               ? 'bg-[#e8f5e9] text-[#2e7d32]' 
-                              : 'bg-[#ffebee] text-[#c62828]'
+                              : 'bg-[#f5f5f7] text-[#86868b]'
                           }`}>
-                            {u.isActive ? '활성' : '비활성'}
+                            {p.canCreatePlans ? 'ON' : 'OFF'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                            p.canViewProjects 
+                              ? 'bg-[#e8f5e9] text-[#2e7d32]' 
+                              : 'bg-[#f5f5f7] text-[#86868b]'
+                          }`}>
+                            {p.canViewProjects ? 'ON' : 'OFF'}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-[#86868b]">
-                          {u.accessibleBrands.length === 0 ? (
-                            <span>전체</span>
+                          {p.allowedBrandIds.length === 0 ? (
+                            <span className="text-[#0071e3]">전체</span>
                           ) : (
-                            <span>{u.accessibleBrands.length}개 프로젝트</span>
+                            <span>{p.allowedBrandIds.length}개 프로젝트</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-3">
                             <button
-                              onClick={() => {
-                                setSelectedUser(u);
-                                setSelectedBrands(u.accessibleBrands);
-                                setShowAccessModal(true);
-                              }}
+                              onClick={() => openPermissionModal(p)}
                               className="text-[#0071e3] text-sm hover:underline"
                             >
-                              권한
-                            </button>
-                            <button
-                              onClick={() => handleToggleActive(u.id, u.isActive)}
-                              className="text-[#86868b] text-sm hover:underline"
-                            >
-                              {u.isActive ? '비활성화' : '활성화'}
+                              수정
                             </button>
                             <button
                               onClick={() => {
-                                setSelectedUser(u);
+                                setSelectedPermission(p);
                                 setShowDeleteModal(true);
                               }}
                               className="text-[#ff3b30] text-sm hover:underline"
@@ -301,7 +322,7 @@ export default function AdminPage() {
                       <div className="w-full flex flex-col items-center justify-end h-32">
                         <span className="text-xs text-[#86868b] mb-1">{stat.count}</span>
                         <div
-                          className="w-full bg-[#0071e3] rounded-t-md transition-all"
+                          className="w-full bg-[#f97316] rounded-t-md transition-all"
                           style={{ height: `${Math.max(height, 4)}%` }}
                         />
                       </div>
@@ -358,54 +379,91 @@ export default function AdminPage() {
         )}
       </main>
 
-      {/* 접근 권한 모달 */}
-      {showAccessModal && selectedUser && (
+      {/* 권한 설정 모달 */}
+      {showPermissionModal && selectedPermission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAccessModal(false)} />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPermissionModal(false)} />
           <div className="relative bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h2 className="text-xl font-semibold text-[#1d1d1f] mb-2">접근 권한 설정</h2>
-            <p className="text-[#86868b] mb-6">{selectedUser.email}</p>
+            <h2 className="text-xl font-semibold text-[#1d1d1f] mb-2">권한 설정</h2>
+            <p className="text-[#86868b] mb-6">{selectedPermission.email}</p>
             
-            <div className="space-y-3 max-h-64 overflow-y-auto mb-6">
-              <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f5f7] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedBrands.length === 0}
-                  onChange={() => setSelectedBrands([])}
-                  className="w-5 h-5 rounded"
-                />
-                <span className="text-[#1d1d1f]">전체 접근 허용</span>
-              </label>
+            {/* 기능 토글 */}
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center justify-between p-4 bg-[#f5f5f7] rounded-xl">
+                <span className="text-[#1d1d1f] font-medium">기획안 생성 권한</span>
+                <button
+                  onClick={() => setEditCanCreatePlans(!editCanCreatePlans)}
+                  className={`w-14 h-8 rounded-full transition-colors relative ${
+                    editCanCreatePlans ? 'bg-[#34c759]' : 'bg-[#d1d1d6]'
+                  }`}
+                >
+                  <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                    editCanCreatePlans ? 'translate-x-7' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
               
-              {brands.map(brand => (
-                <label key={brand.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f5f7] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedBrands.includes(brand.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedBrands([...selectedBrands, brand.id]);
-                      } else {
-                        setSelectedBrands(selectedBrands.filter(id => id !== brand.id));
-                      }
-                    }}
-                    className="w-5 h-5 rounded"
-                  />
-                  <span className="text-[#1d1d1f]">{brand.name}</span>
-                </label>
-              ))}
+              <div className="flex items-center justify-between p-4 bg-[#f5f5f7] rounded-xl">
+                <span className="text-[#1d1d1f] font-medium">프로젝트 열람 권한</span>
+                <button
+                  onClick={() => setEditCanViewProjects(!editCanViewProjects)}
+                  className={`w-14 h-8 rounded-full transition-colors relative ${
+                    editCanViewProjects ? 'bg-[#34c759]' : 'bg-[#d1d1d6]'
+                  }`}
+                >
+                  <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                    editCanViewProjects ? 'translate-x-7' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
             </div>
+            
+            {/* 프로젝트 선택 */}
+            {editCanViewProjects && (
+              <div className="mb-6">
+                <p className="text-sm text-[#86868b] mb-3">열람 가능한 프로젝트 선택</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f5f7] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editAllowedBrands.length === 0}
+                      onChange={() => setEditAllowedBrands([])}
+                      className="w-5 h-5 rounded accent-[#f97316]"
+                    />
+                    <span className="text-[#1d1d1f]">전체 프로젝트</span>
+                  </label>
+                  
+                  {brands.map(brand => (
+                    <label key={brand.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#f5f5f7] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editAllowedBrands.includes(brand.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditAllowedBrands([...editAllowedBrands, brand.id]);
+                          } else {
+                            setEditAllowedBrands(editAllowedBrands.filter(id => id !== brand.id));
+                          }
+                        }}
+                        className="w-5 h-5 rounded accent-[#f97316]"
+                      />
+                      <span className="text-[#1d1d1f]">{brand.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="flex gap-3">
               <button
-                onClick={() => setShowAccessModal(false)}
+                onClick={() => setShowPermissionModal(false)}
                 className="flex-1 px-4 py-3 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl font-medium hover:bg-[#e8e8ed] transition-colors"
               >
                 취소
               </button>
               <button
-                onClick={handleAccessSave}
-                className="flex-1 px-4 py-3 bg-[#0071e3] text-white rounded-xl font-medium hover:bg-[#0077ed] transition-colors"
+                onClick={handlePermissionSave}
+                className="flex-1 px-4 py-3 bg-[#f97316] text-white rounded-xl font-medium hover:bg-[#ea580c] transition-colors"
               >
                 저장
               </button>
@@ -415,14 +473,14 @@ export default function AdminPage() {
       )}
 
       {/* 삭제 확인 모달 */}
-      {showDeleteModal && selectedUser && (
+      {showDeleteModal && selectedPermission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
           <div className="relative bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl text-center">
-            <h2 className="text-xl font-semibold text-[#1d1d1f] mb-2">유저 삭제</h2>
+            <h2 className="text-xl font-semibold text-[#1d1d1f] mb-2">권한 삭제</h2>
             <p className="text-[#86868b] mb-6">
-              <span className="text-[#1d1d1f] font-medium">{selectedUser.email}</span>
-              <br />정말 삭제하시겠습니까?
+              <span className="text-[#1d1d1f] font-medium">{selectedPermission.email}</span>
+              <br />의 권한을 삭제하시겠습니까?
             </p>
             
             <div className="flex gap-3">
@@ -433,7 +491,7 @@ export default function AdminPage() {
                 취소
               </button>
               <button
-                onClick={handleDeleteUser}
+                onClick={handleDeletePermission}
                 className="flex-1 px-4 py-3 bg-[#ff3b30] text-white rounded-xl font-medium hover:bg-[#ff453a] transition-colors"
               >
                 삭제
@@ -445,4 +503,3 @@ export default function AdminPage() {
     </div>
   );
 }
-

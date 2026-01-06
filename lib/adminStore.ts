@@ -1,14 +1,16 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { v4 as uuidv4 } from 'uuid';
 
-// 유저 타입
-export interface AppUser {
+// 유저 권한 타입
+export interface UserPermission {
   id: string;
+  userId: string;
   email: string;
+  canCreatePlans: boolean;
+  canViewProjects: boolean;
+  allowedBrandIds: string[];
   createdAt: string;
-  lastSignIn: string | null;
-  accessibleBrands: string[]; // 접근 가능한 브랜드 ID 목록
-  isActive: boolean;
+  updatedAt: string;
 }
 
 // 방문 기록 타입
@@ -20,98 +22,166 @@ export interface VisitLog {
   page: string;
 }
 
-const USERS_STORAGE_KEY = 'advert_users';
+const PERMISSIONS_STORAGE_KEY = 'advert_user_permissions';
 const VISITS_STORAGE_KEY = 'advert_visits';
 
-// ==================== 유저 관리 ====================
+// ==================== 유저 권한 관리 ====================
 
-// 로컬 스토리지에서 유저 불러오기
-const getLocalUsers = (): AppUser[] => {
+// 로컬 스토리지에서 권한 불러오기
+const getLocalPermissions = (): UserPermission[] => {
   if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(USERS_STORAGE_KEY);
+  const data = localStorage.getItem(PERMISSIONS_STORAGE_KEY);
   return data ? JSON.parse(data) : [];
 };
 
-// 로컬 스토리지에 유저 저장
-const setLocalUsers = (users: AppUser[]): void => {
+// 로컬 스토리지에 권한 저장
+const setLocalPermissions = (permissions: UserPermission[]): void => {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  localStorage.setItem(PERMISSIONS_STORAGE_KEY, JSON.stringify(permissions));
 };
 
-// 모든 유저 가져오기
-export const getUsers = async (): Promise<AppUser[]> => {
+// 모든 유저 권한 가져오기
+export const getAllUserPermissions = async (): Promise<UserPermission[]> => {
   if (isSupabaseConfigured() && supabase) {
     try {
-      // Supabase Admin API는 서버에서만 사용 가능
-      // 클라이언트에서는 별도 테이블 사용
       const { data, error } = await supabase
-        .from('app_users')
+        .from('user_permissions')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      return data?.map(u => ({
-        id: u.id,
-        email: u.email,
-        createdAt: u.created_at,
-        lastSignIn: u.last_sign_in,
-        accessibleBrands: u.accessible_brands || [],
-        isActive: u.is_active ?? true,
+      return data?.map(p => ({
+        id: p.id,
+        userId: p.user_id,
+        email: p.email,
+        canCreatePlans: p.can_create_plans || false,
+        canViewProjects: p.can_view_projects || false,
+        allowedBrandIds: p.allowed_brand_ids || [],
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
       })) || [];
     } catch (error) {
-      console.error('Error fetching users:', error);
-      return getLocalUsers();
+      console.error('Error fetching permissions:', error);
+      return getLocalPermissions();
     }
   }
-  return getLocalUsers();
+  return getLocalPermissions();
 };
 
-// 유저 접근 권한 업데이트
-export const updateUserAccess = async (userId: string, brandIds: string[]): Promise<void> => {
+// 특정 유저 권한 가져오기
+export const getUserPermission = async (userId: string): Promise<UserPermission | null> => {
   if (isSupabaseConfigured() && supabase) {
-    await supabase
-      .from('app_users')
-      .update({ accessible_brands: brandIds })
-      .eq('id', userId);
+    try {
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error) return null;
+      
+      return {
+        id: data.id,
+        userId: data.user_id,
+        email: data.email,
+        canCreatePlans: data.can_create_plans || false,
+        canViewProjects: data.can_view_projects || false,
+        allowedBrandIds: data.allowed_brand_ids || [],
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      };
+    } catch {
+      return null;
+    }
+  }
+  const permissions = getLocalPermissions();
+  return permissions.find(p => p.userId === userId) || null;
+};
+
+// 유저 권한 생성/업데이트
+export const upsertUserPermission = async (
+  userId: string,
+  email: string,
+  updates: {
+    canCreatePlans?: boolean;
+    canViewProjects?: boolean;
+    allowedBrandIds?: string[];
+  }
+): Promise<void> => {
+  const now = new Date().toISOString();
+  
+  if (isSupabaseConfigured() && supabase) {
+    // 먼저 기존 권한이 있는지 확인
+    const { data: existing } = await supabase
+      .from('user_permissions')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+    
+    if (existing) {
+      // 업데이트
+      await supabase
+        .from('user_permissions')
+        .update({
+          can_create_plans: updates.canCreatePlans,
+          can_view_projects: updates.canViewProjects,
+          allowed_brand_ids: updates.allowedBrandIds,
+          updated_at: now,
+        })
+        .eq('user_id', userId);
+    } else {
+      // 새로 생성
+      await supabase
+        .from('user_permissions')
+        .insert({
+          user_id: userId,
+          email: email,
+          can_create_plans: updates.canCreatePlans ?? false,
+          can_view_projects: updates.canViewProjects ?? false,
+          allowed_brand_ids: updates.allowedBrandIds ?? [],
+          created_at: now,
+          updated_at: now,
+        });
+    }
   } else {
-    const users = getLocalUsers();
-    const index = users.findIndex(u => u.id === userId);
+    // 로컬 스토리지
+    const permissions = getLocalPermissions();
+    const index = permissions.findIndex(p => p.userId === userId);
+    
     if (index !== -1) {
-      users[index].accessibleBrands = brandIds;
-      setLocalUsers(users);
+      permissions[index] = {
+        ...permissions[index],
+        ...updates,
+        updatedAt: now,
+      };
+    } else {
+      permissions.push({
+        id: uuidv4(),
+        userId,
+        email,
+        canCreatePlans: updates.canCreatePlans ?? false,
+        canViewProjects: updates.canViewProjects ?? false,
+        allowedBrandIds: updates.allowedBrandIds ?? [],
+        createdAt: now,
+        updatedAt: now,
+      });
     }
+    setLocalPermissions(permissions);
   }
 };
 
-// 유저 비활성화/활성화
-export const toggleUserActive = async (userId: string, isActive: boolean): Promise<void> => {
+// 유저 권한 삭제
+export const deleteUserPermission = async (userId: string): Promise<void> => {
   if (isSupabaseConfigured() && supabase) {
     await supabase
-      .from('app_users')
-      .update({ is_active: isActive })
-      .eq('id', userId);
-  } else {
-    const users = getLocalUsers();
-    const index = users.findIndex(u => u.id === userId);
-    if (index !== -1) {
-      users[index].isActive = isActive;
-      setLocalUsers(users);
-    }
-  }
-};
-
-// 유저 삭제 (실제로는 비활성화)
-export const deleteUser = async (userId: string): Promise<void> => {
-  if (isSupabaseConfigured() && supabase) {
-    await supabase
-      .from('app_users')
+      .from('user_permissions')
       .delete()
-      .eq('id', userId);
+      .eq('user_id', userId);
   } else {
-    const users = getLocalUsers();
-    const filtered = users.filter(u => u.id !== userId);
-    setLocalUsers(filtered);
+    const permissions = getLocalPermissions();
+    const filtered = permissions.filter(p => p.userId !== userId);
+    setLocalPermissions(filtered);
   }
 };
 
@@ -217,4 +287,3 @@ export const getUniqueVisitors = async (days: number = 30): Promise<number> => {
   const uniqueUsers = new Set(visits.map(v => v.userId));
   return uniqueUsers.size;
 };
-
