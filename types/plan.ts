@@ -10,13 +10,15 @@ export interface Brand {
   updatedAt: string;
 }
 
-// 스토리보드 아이템
+// 스토리보드 아이템 (가로 열 방식)
 export interface StoryboardItem {
   id: string;
   order: number;
+  image?: string; // 영상/이미지 (base64 또는 URL)
   scene: string; // 장면 설명
-  narration: string; // 나레이션/대사
-  note: string; // 비고/특이사항
+  effect: string; // 소스 효과
+  note: string; // 특이사항
+  narration: string; // 대본/나레이션
 }
 
 export interface Plan {

@@ -373,9 +373,11 @@ const deleteLocalPlan = (id: string): boolean => {
 export const createEmptyStoryboardItem = (order: number = 0): StoryboardItem => ({
   id: uuidv4(),
   order,
+  image: '',
   scene: '',
-  narration: '',
+  effect: '',
   note: '',
+  narration: '',
 });
 
 // Supabase 데이터 변환 (snake_case <-> camelCase)
