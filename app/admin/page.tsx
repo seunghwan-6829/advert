@@ -334,9 +334,9 @@ export default function AdminPage() {
                 <span className="text-[#1d1d1f] font-medium">기획안 생성</span>
                 <button
                   onClick={() => setEditCanCreate(!editCanCreate)}
-                  className={`w-14 h-8 rounded-full relative ${editCanCreate ? 'bg-[#34c759]' : 'bg-[#d1d1d6]'}`}
+                  className={`w-12 h-7 rounded-full relative transition-colors ${editCanCreate ? 'bg-[#34c759]' : 'bg-[#d1d1d6]'}`}
                 >
-                  <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${editCanCreate ? 'translate-x-7' : 'translate-x-1'}`} />
+                  <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${editCanCreate ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
               
@@ -344,9 +344,9 @@ export default function AdminPage() {
                 <span className="text-[#1d1d1f] font-medium">프로젝트 열람</span>
                 <button
                   onClick={() => setEditCanView(!editCanView)}
-                  className={`w-14 h-8 rounded-full relative ${editCanView ? 'bg-[#34c759]' : 'bg-[#d1d1d6]'}`}
+                  className={`w-12 h-7 rounded-full relative transition-colors ${editCanView ? 'bg-[#34c759]' : 'bg-[#d1d1d6]'}`}
                 >
-                  <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${editCanView ? 'translate-x-7' : 'translate-x-1'}`} />
+                  <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${editCanView ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
               </div>
             </div>
