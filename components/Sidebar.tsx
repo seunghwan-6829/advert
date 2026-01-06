@@ -158,10 +158,7 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
                     {user.email?.split('@')[0]}
                   </p>
                   {isAdmin && (
-                    <p className="text-xs text-[#f97316] flex items-center gap-1">
-                      <Shield size={10} />
-                      관리자
-                    </p>
+                    <p className="text-xs text-[#f97316]">관리자</p>
                   )}
                 </div>
               </div>
