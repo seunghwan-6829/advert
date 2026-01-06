@@ -20,11 +20,11 @@ import Link from 'next/link';
 
 // 기본 행 높이 설정
 const DEFAULT_ROW_HEIGHTS = {
-  image: 180,    // 영상 - 더 크게
-  source: 80,    // 소스
-  effect: 80,    // 효과
-  note: 60,      // 특이사항 - 더 작게
-  narration: 100, // 대본
+  image: 180,
+  source: 80,
+  effect: 80,
+  note: 60,
+  narration: 100,
 };
 
 function PlanDetailContent() {
@@ -37,9 +37,11 @@ function PlanDetailContent() {
   const [uploadingColumn, setUploadingColumn] = useState<number | null>(null);
 
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [originalPlan, setOriginalPlan] = useState<Plan | null>(null); // 원본 데이터
   const [brandName, setBrandName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false); // 저장 안됨 모달
   
   // 행 높이 상태
   const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
@@ -51,6 +53,7 @@ function PlanDetailContent() {
     const loadData = async () => {
       const planData = await getPlanById(planId);
       setPlan(planData);
+      setOriginalPlan(planData ? JSON.parse(JSON.stringify(planData)) : null); // 깊은 복사
       
       if (planData?.brandId) {
         const brand = await getBrandById(planData.brandId);
@@ -63,6 +66,12 @@ function PlanDetailContent() {
     };
     loadData();
   }, [planId]);
+
+  // 변경사항 있는지 확인
+  const hasUnsavedChanges = () => {
+    if (!plan || !originalPlan) return false;
+    return JSON.stringify(plan) !== JSON.stringify(originalPlan);
+  };
 
   // 리사이즈 핸들러
   const handleResizeStart = (rowKey: string, e: React.MouseEvent) => {
@@ -99,7 +108,27 @@ function PlanDetailContent() {
     if (!plan) return;
     setSaving(true);
     await updatePlan(plan.id, plan);
+    setOriginalPlan(JSON.parse(JSON.stringify(plan))); // 저장 후 원본 업데이트
     setSaving(false);
+  };
+
+  // 저장하고 나가기
+  const handleSaveAndExit = async () => {
+    if (!plan) return;
+    setSaving(true);
+    await updatePlan(plan.id, plan);
+    setSaving(false);
+    setShowUnsavedModal(false);
+    router.push(backUrl);
+  };
+
+  // 돌아가기 클릭
+  const handleBack = () => {
+    if (hasUnsavedChanges()) {
+      setShowUnsavedModal(true);
+    } else {
+      router.push(backUrl);
+    }
   };
 
   const handleDelete = async () => {
@@ -137,7 +166,6 @@ function PlanDetailContent() {
     setPlan({ ...plan, storyboard: newStoryboard });
   };
 
-  // 이미지 업로드 핸들러
   const handleImageUpload = (index: number) => {
     setUploadingColumn(index);
     fileInputRef.current?.click();
@@ -158,7 +186,6 @@ function PlanDetailContent() {
     e.target.value = '';
   };
 
-  // 이미지 다운로드 핸들러
   const handleImageDownload = (image: string, index: number) => {
     const link = document.createElement('a');
     link.href = image;
@@ -168,7 +195,6 @@ function PlanDetailContent() {
     document.body.removeChild(link);
   };
 
-  // 이미지 삭제 핸들러
   const handleImageDelete = (index: number) => {
     handleUpdateColumn(index, 'image', '');
   };
@@ -207,7 +233,6 @@ function PlanDetailContent() {
 
   const backUrl = brandIdFromUrl || plan.brandId ? `/?brand=${brandIdFromUrl || plan.brandId}` : '/';
 
-  // 행 라벨 (색깔 제거)
   const rowLabels = [
     { key: 'image', label: '영상' },
     { key: 'source', label: '소스' },
@@ -218,6 +243,47 @@ function PlanDetailContent() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f2]">
+      {/* 저장 안됨 모달 */}
+      {showUnsavedModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-xl bg-[#fef3c7]">
+                <AlertTriangle size={24} className="text-[#f59e0b]" />
+              </div>
+              <h3 className="text-lg font-semibold text-[#1a1a1a]">저장되지 않음</h3>
+            </div>
+            <p className="text-[#6b7280] mb-6">
+              변경사항이 저장되지 않았습니다. 저장하지 않고 나가시겠습니까?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowUnsavedModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb] transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  setShowUnsavedModal(false);
+                  router.push(backUrl);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-[#e5e7eb] text-[#ef4444] hover:bg-[#fef2f2] transition-colors"
+              >
+                그냥 나가기
+              </button>
+              <button
+                onClick={handleSaveAndExit}
+                disabled={saving}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#f97316] text-white hover:bg-[#ea580c] transition-colors disabled:opacity-50"
+              >
+                {saving ? '저장 중...' : '저장하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 숨겨진 파일 입력 */}
       <input
         type="file"
@@ -231,12 +297,13 @@ function PlanDetailContent() {
       <header className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-6 py-4">
         <div className="max-w-full mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href={backUrl}>
-              <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-[#6b7280] hover:text-[#f97316] hover:bg-[#fff7ed] transition-all">
-                <ArrowLeft size={18} />
-                <span className="font-medium">돌아가기</span>
-              </button>
-            </Link>
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-[#6b7280] hover:text-[#f97316] hover:bg-[#fff7ed] transition-all"
+            >
+              <ArrowLeft size={18} />
+              <span className="font-medium">돌아가기</span>
+            </button>
             {brandName && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-[#fff7ed] rounded-lg">
                 <span className="text-sm text-[#c2410c] font-medium">{brandName}</span>
@@ -286,10 +353,8 @@ function PlanDetailContent() {
             <div className="inline-flex min-w-full">
               {/* 행 라벨 (고정) */}
               <div className="sticky left-0 z-10 bg-white border-r border-[#e5e7eb] flex-shrink-0 w-28">
-                {/* 빈 헤더 셀 */}
                 <div className="h-12 border-b border-[#e5e7eb]"></div>
                 
-                {/* 행 라벨들 */}
                 {rowLabels.map((row) => (
                   <div
                     key={row.key}
@@ -301,7 +366,6 @@ function PlanDetailContent() {
                         {row.label}
                       </span>
                     </div>
-                    {/* 리사이즈 핸들 */}
                     <div
                       className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-[#f97316]/20 group flex items-center justify-center"
                       onMouseDown={(e) => handleResizeStart(row.key, e)}
@@ -315,7 +379,6 @@ function PlanDetailContent() {
               {/* 스토리보드 열들 */}
               {plan.storyboard.map((item, index) => (
                 <div key={item.id} className="flex-shrink-0 w-64 border-r border-[#e5e7eb] last:border-r-0">
-                  {/* 열 헤더 (번호 + 삭제) */}
                   <div className="h-12 flex items-center justify-between px-3 border-b border-[#e5e7eb] bg-[#fafafa]">
                     <span className="text-sm font-semibold text-[#1a1a1a]">#{index + 1}</span>
                     <button
@@ -327,7 +390,6 @@ function PlanDetailContent() {
                     </button>
                   </div>
 
-                  {/* 영상/이미지 */}
                   <div 
                     className="border-b border-[#e5e7eb] relative group"
                     style={{ height: rowHeights.image }}
@@ -339,7 +401,6 @@ function PlanDetailContent() {
                           alt={`Scene ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
-                        {/* 호버 시 액션 버튼 */}
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleImageDownload(item.image!, index)}
@@ -375,7 +436,6 @@ function PlanDetailContent() {
                     )}
                   </div>
 
-                  {/* 소스 */}
                   <div 
                     className="border-b border-[#e5e7eb]"
                     style={{ height: rowHeights.source }}
@@ -388,7 +448,6 @@ function PlanDetailContent() {
                     />
                   </div>
 
-                  {/* 효과 */}
                   <div 
                     className="border-b border-[#e5e7eb]"
                     style={{ height: rowHeights.effect }}
@@ -401,7 +460,6 @@ function PlanDetailContent() {
                     />
                   </div>
 
-                  {/* 특이사항 */}
                   <div 
                     className="border-b border-[#e5e7eb]"
                     style={{ height: rowHeights.note }}
@@ -414,7 +472,6 @@ function PlanDetailContent() {
                     />
                   </div>
 
-                  {/* 대본/나레이션 */}
                   <div 
                     className="border-b border-[#e5e7eb]"
                     style={{ height: rowHeights.narration }}
@@ -429,7 +486,6 @@ function PlanDetailContent() {
                 </div>
               ))}
 
-              {/* 열 추가 버튼 */}
               <div className="flex-shrink-0 w-20 flex items-center justify-center bg-[#fafafa]">
                 <button
                   onClick={handleAddColumn}
