@@ -75,22 +75,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // 권한 생성 (없으면)
-  const createPermission = async (userId: string, email: string): Promise<void> => {
+  // 권한 생성 (없을 때만 - 기존 권한 덮어쓰지 않음!)
+  const createPermissionIfNotExists = async (userId: string, email: string): Promise<void> => {
     if (!supabase) return;
     
     try {
+      // 먼저 기존 권한이 있는지 확인
+      const { data: existing } = await supabase
+        .from('user_permissions')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      
+      // 이미 있으면 생성하지 않음
+      if (existing) return;
+      
+      // 없을 때만 새로 생성
       await supabase
         .from('user_permissions')
-        .upsert({
+        .insert({
           user_id: userId,
           email: email,
           can_create_plans: false,
           can_view_projects: false,
           allowed_brand_ids: [],
-        }, { onConflict: 'user_id' });
+        });
     } catch {
-      // 무시
+      // 무시 (이미 존재하거나 에러)
     }
   };
 
@@ -138,9 +149,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const perms = await fetchPermissions(session.user.id);
           if (mounted) setPermissions(perms);
           
-          // 권한 레코드 없으면 생성
+          // 권한 레코드 없으면 생성 (기존 권한 덮어쓰지 않음)
           if (session.user.email) {
-            createPermission(session.user.id, session.user.email);
+            createPermissionIfNotExists(session.user.id, session.user.email);
           }
         }
       }
@@ -168,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (mounted) setPermissions(perms);
             
             if (session.user.email) {
-              createPermission(session.user.id, session.user.email);
+              createPermissionIfNotExists(session.user.id, session.user.email);
             }
           }
         } else {
