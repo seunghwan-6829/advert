@@ -1,8 +1,8 @@
-import { Plan, PlanSection, Brand } from '@/types/plan';
+import { Plan, StoryboardItem, Brand } from '@/types/plan';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, isSupabaseConfigured } from './supabase';
 
-const STORAGE_KEY = 'advert_plans';
+const STORAGE_KEY = 'advert_plans_v2'; // 새 버전 (스토리보드 형식)
 const BRANDS_STORAGE_KEY = 'advert_brands';
 
 // ==================== 브랜드 관련 함수 ====================
@@ -159,12 +159,10 @@ export const deleteBrand = async (id: string): Promise<boolean> => {
 };
 
 const deleteLocalBrand = (id: string): boolean => {
-  // 로컬 기획안에서 brandId 제거
+  // 해당 브랜드의 기획안들도 함께 삭제
   const plans = getLocalPlans();
-  const updatedPlans = plans.map(p => 
-    p.brandId === id ? { ...p, brandId: undefined } : p
-  );
-  setLocalPlans(updatedPlans);
+  const filteredPlans = plans.filter(p => p.brandId !== id);
+  setLocalPlans(filteredPlans);
   
   // 브랜드 삭제
   const brands = getLocalBrands();
@@ -371,15 +369,13 @@ const deleteLocalPlan = (id: string): boolean => {
   return true;
 };
 
-// 빈 섹션 생성
-export const createEmptySection = (sectionType: string = '상단CTA'): PlanSection => ({
+// 빈 스토리보드 아이템 생성
+export const createEmptyStoryboardItem = (order: number = 0): StoryboardItem => ({
   id: uuidv4(),
-  sectionType,
-  videoDescription: '',
-  script: '',
-  notes: '',
-  sourceInfo: '자막과 어울리는 소스 사용',
-  effectInfo: '',
+  order,
+  scene: '',
+  narration: '',
+  note: '',
 });
 
 // Supabase 데이터 변환 (snake_case <-> camelCase)
@@ -388,14 +384,7 @@ const transformFromSupabase = (data: any): Plan => ({
   id: data.id,
   brandId: data.brand_id,
   title: data.title,
-  videoNumber: data.video_number,
-  sourceCost: data.source_cost,
-  productionCost: data.production_cost,
-  rfLink: data.rf_link,
-  videoLength: data.video_length,
-  referenceNote: data.reference_note,
-  keywords: data.keywords || [],
-  sections: data.sections || [],
+  storyboard: data.storyboard || [],
   createdAt: data.created_at,
   updatedAt: data.updated_at,
 });
@@ -404,14 +393,7 @@ const transformToSupabase = (plan: Plan) => ({
   id: plan.id,
   brand_id: plan.brandId,
   title: plan.title,
-  video_number: plan.videoNumber,
-  source_cost: plan.sourceCost,
-  production_cost: plan.productionCost,
-  rf_link: plan.rfLink,
-  video_length: plan.videoLength,
-  reference_note: plan.referenceNote,
-  keywords: plan.keywords,
-  sections: plan.sections,
+  storyboard: plan.storyboard,
   created_at: plan.createdAt,
   updated_at: plan.updatedAt,
 });

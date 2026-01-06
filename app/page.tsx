@@ -42,10 +42,9 @@ function HomeContent() {
         if (plan.brandId !== selectedBrandId) {
           return false;
         }
-        // 검색 필터
+        // 검색 필터 (제목으로만 검색)
         if (searchQuery) {
-          return plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            plan.keywords.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()));
+          return plan.title.toLowerCase().includes(searchQuery.toLowerCase());
         }
         return true;
       })
@@ -187,13 +186,15 @@ function HomeContent() {
               </button>
             </div>
 
-            {/* 새 기획안 버튼 */}
-            <Link href="/plan/new">
-              <button className="btn-primary flex items-center gap-2 text-sm">
-                <Plus size={16} />
-                새 기획안
-              </button>
-            </Link>
+            {/* 새 기획안 버튼 (프로젝트 선택 시에만 활성화) */}
+            {selectedBrandId && (
+              <Link href={`/plan/new?brand=${selectedBrandId}`}>
+                <button className="btn-primary flex items-center gap-2 text-sm">
+                  <Plus size={16} />
+                  새 기획안
+                </button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -244,23 +245,21 @@ function HomeContent() {
         ) : (
           <div className="space-y-3">
             {filteredPlans.map((plan, index) => (
-              <Link key={plan.id} href={`/plan/${plan.id}`}>
+              <Link key={plan.id} href={`/plan/${plan.id}?brand=${plan.brandId}`}>
                 <div 
                   className="flex items-center justify-between p-4 bg-white rounded-xl hover:shadow-md transition-all cursor-pointer border border-[#f0e6dc] hover:border-[#fed7aa] animate-fade-in-up"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div className="flex items-center gap-4">
-                    <span className="tag tag-orange">영상 {plan.videoNumber}번</span>
+                    <span className="tag tag-orange">
+                      <FileText size={12} />
+                      {plan.storyboard?.length || 0}개 장면
+                    </span>
                     <span className="text-[#1a1a1a] font-medium">{plan.title}</span>
                   </div>
-                  <div className="flex items-center gap-6 text-sm text-[#6b7280]">
-                    <span>
-                      {(plan.sourceCost + plan.productionCost).toLocaleString()}원
-                    </span>
-                    <span>
-                      {new Date(plan.createdAt).toLocaleDateString('ko-KR')}
-                    </span>
-                  </div>
+                  <span className="text-sm text-[#6b7280]">
+                    {new Date(plan.createdAt).toLocaleDateString('ko-KR')}
+                  </span>
                 </div>
               </Link>
             ))}
