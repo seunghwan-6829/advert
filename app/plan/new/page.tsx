@@ -16,6 +16,15 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+// 기본 행 높이 설정
+const DEFAULT_ROW_HEIGHTS = {
+  image: 180,    // 영상 - 더 크게
+  source: 80,    // 소스
+  effect: 80,    // 효과
+  note: 60,      // 특이사항 - 더 작게
+  narration: 100, // 대본
+};
+
 function NewPlanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,6 +38,12 @@ function NewPlanContent() {
   const [storyboard, setStoryboard] = useState<StoryboardItem[]>([
     createEmptyStoryboardItem(0),
   ]);
+
+  // 행 높이 상태
+  const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
+  const [resizing, setResizing] = useState<string | null>(null);
+  const startY = useRef(0);
+  const startHeight = useRef(0);
 
   useEffect(() => {
     // brandId가 없으면 메인으로 리다이렉트
@@ -46,6 +61,37 @@ function NewPlanContent() {
     };
     loadBrand();
   }, [brandId, router]);
+
+  // 리사이즈 핸들러
+  const handleResizeStart = (rowKey: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    setResizing(rowKey);
+    startY.current = e.clientY;
+    startHeight.current = rowHeights[rowKey as keyof typeof rowHeights];
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizing) return;
+      const diff = e.clientY - startY.current;
+      const newHeight = Math.max(40, Math.min(300, startHeight.current + diff));
+      setRowHeights(prev => ({ ...prev, [resizing]: newHeight }));
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+
+    if (resizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -78,7 +124,6 @@ function NewPlanContent() {
   const handleDeleteColumn = (index: number) => {
     if (storyboard.length <= 1) return;
     const newStoryboard = storyboard.filter((_, i) => i !== index);
-    // 순서 재정렬
     setStoryboard(newStoryboard.map((item, i) => ({ ...item, order: i })));
   };
 
@@ -106,7 +151,6 @@ function NewPlanContent() {
     };
     reader.readAsDataURL(file);
     
-    // 입력 초기화
     e.target.value = '';
   };
 
@@ -129,12 +173,13 @@ function NewPlanContent() {
     return null;
   }
 
-  // 행 라벨
+  // 행 라벨 (색깔 제거)
   const rowLabels = [
-    { key: 'image', label: '영상', color: 'bg-[#fef9c3]', textColor: 'text-[#854d0e]' },
-    { key: 'effect', label: '소스 효과', color: 'bg-[#dcfce7]', textColor: 'text-[#166534]' },
-    { key: 'note', label: '특이사항', color: 'bg-[#fce7f3]', textColor: 'text-[#9d174d]' },
-    { key: 'narration', label: '대본\n(나레이션)', color: 'bg-[#fee2e2]', textColor: 'text-[#991b1b]' },
+    { key: 'image', label: '영상' },
+    { key: 'source', label: '소스' },
+    { key: 'effect', label: '효과' },
+    { key: 'note', label: '특이사항' },
+    { key: 'narration', label: '대본\n(나레이션)' },
   ];
 
   return (
@@ -191,32 +236,42 @@ function NewPlanContent() {
         </div>
 
         {/* 가로 스크롤 스토리보드 */}
-        <div className="bg-white rounded-2xl border border-[#f0e6dc] overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden">
+          <div className="overflow-x-auto storyboard-scroll">
             <div className="inline-flex min-w-full">
               {/* 행 라벨 (고정) */}
-              <div className="sticky left-0 z-10 bg-white border-r border-[#f0e6dc] flex-shrink-0 w-28">
+              <div className="sticky left-0 z-10 bg-white border-r border-[#e5e7eb] flex-shrink-0 w-28">
                 {/* 빈 헤더 셀 */}
-                <div className="h-12 border-b border-[#f0e6dc]"></div>
+                <div className="h-12 border-b border-[#e5e7eb]"></div>
                 
                 {/* 행 라벨들 */}
                 {rowLabels.map((row) => (
                   <div
                     key={row.key}
-                    className={`h-32 flex items-center justify-center px-2 border-b border-[#f0e6dc] ${row.color}`}
+                    className="relative border-b border-[#e5e7eb] bg-[#fafafa]"
+                    style={{ height: rowHeights[row.key as keyof typeof rowHeights] }}
                   >
-                    <span className={`text-sm font-semibold ${row.textColor} text-center whitespace-pre-line`}>
-                      {row.label}
-                    </span>
+                    <div className="flex items-center justify-center h-full px-2">
+                      <span className="text-sm font-semibold text-[#374151] text-center whitespace-pre-line">
+                        {row.label}
+                      </span>
+                    </div>
+                    {/* 리사이즈 핸들 */}
+                    <div
+                      className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-[#f97316]/20 group flex items-center justify-center"
+                      onMouseDown={(e) => handleResizeStart(row.key, e)}
+                    >
+                      <div className="w-8 h-1 rounded-full bg-[#d1d5db] group-hover:bg-[#f97316] transition-colors" />
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* 스토리보드 열들 */}
               {storyboard.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-64 border-r border-[#f0e6dc] last:border-r-0">
+                <div key={item.id} className="flex-shrink-0 w-64 border-r border-[#e5e7eb] last:border-r-0">
                   {/* 열 헤더 (번호 + 삭제) */}
-                  <div className="h-12 flex items-center justify-between px-3 border-b border-[#f0e6dc] bg-[#fafafa]">
+                  <div className="h-12 flex items-center justify-between px-3 border-b border-[#e5e7eb] bg-[#fafafa]">
                     <span className="text-sm font-semibold text-[#1a1a1a]">#{index + 1}</span>
                     <button
                       onClick={() => handleDeleteColumn(index)}
@@ -228,7 +283,10 @@ function NewPlanContent() {
                   </div>
 
                   {/* 영상/이미지 */}
-                  <div className="h-32 border-b border-[#f0e6dc] bg-[#fef9c3]/30 relative group">
+                  <div 
+                    className="border-b border-[#e5e7eb] relative group"
+                    style={{ height: rowHeights.image }}
+                  >
                     {item.image ? (
                       <div className="relative w-full h-full">
                         <img
@@ -272,18 +330,37 @@ function NewPlanContent() {
                     )}
                   </div>
 
-                  {/* 소스 효과 */}
-                  <div className="h-32 border-b border-[#f0e6dc] bg-[#dcfce7]/30">
+                  {/* 소스 */}
+                  <div 
+                    className="border-b border-[#e5e7eb]"
+                    style={{ height: rowHeights.source }}
+                  >
+                    <textarea
+                      value={item.source || ''}
+                      onChange={(e) => handleUpdateColumn(index, 'source', e.target.value)}
+                      placeholder="소스..."
+                      className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
+                    />
+                  </div>
+
+                  {/* 효과 */}
+                  <div 
+                    className="border-b border-[#e5e7eb]"
+                    style={{ height: rowHeights.effect }}
+                  >
                     <textarea
                       value={item.effect || ''}
                       onChange={(e) => handleUpdateColumn(index, 'effect', e.target.value)}
-                      placeholder="소스 효과..."
+                      placeholder="효과..."
                       className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
                     />
                   </div>
 
                   {/* 특이사항 */}
-                  <div className="h-32 border-b border-[#f0e6dc] bg-[#fce7f3]/30">
+                  <div 
+                    className="border-b border-[#e5e7eb]"
+                    style={{ height: rowHeights.note }}
+                  >
                     <textarea
                       value={item.note}
                       onChange={(e) => handleUpdateColumn(index, 'note', e.target.value)}
@@ -293,7 +370,10 @@ function NewPlanContent() {
                   </div>
 
                   {/* 대본/나레이션 */}
-                  <div className="h-32 border-b border-[#f0e6dc] bg-[#fee2e2]/30">
+                  <div 
+                    className="border-b border-[#e5e7eb]"
+                    style={{ height: rowHeights.narration }}
+                  >
                     <textarea
                       value={item.narration}
                       onChange={(e) => handleUpdateColumn(index, 'narration', e.target.value)}

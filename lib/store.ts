@@ -374,7 +374,7 @@ export const createEmptyStoryboardItem = (order: number = 0): StoryboardItem => 
   id: uuidv4(),
   order,
   image: '',
-  scene: '',
+  source: '',
   effect: '',
   note: '',
   narration: '',
