@@ -50,29 +50,30 @@ body {
   background: #d4cbc1;
 }
 
-/* 스토리보드 가로 스크롤바 (더 크게) */
+/* 스토리보드 가로 스크롤바 (더 두껍게) */
 .storyboard-scroll::-webkit-scrollbar {
-  height: 16px;
+  height: 20px;
 }
 
 .storyboard-scroll::-webkit-scrollbar-track {
-  background: #f5f5f5;
-  border-radius: 8px;
-  margin: 0 8px;
+  background: #f0f0f0;
+  border-radius: 10px;
+  margin: 0 12px;
 }
 
 .storyboard-scroll::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 8px;
-  border: 3px solid #f5f5f5;
+  background: #c4c4c4;
+  border-radius: 10px;
+  border: 4px solid #f0f0f0;
+  min-width: 60px;
 }
 
 .storyboard-scroll::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #a3a3a3;
 }
 
 .storyboard-scroll::-webkit-scrollbar-thumb:active {
-  background: #6b7280;
+  background: #737373;
 }
 
 /* 선택 스타일 */

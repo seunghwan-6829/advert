@@ -18,7 +18,7 @@ import {
 
 // 기본 행 높이 설정
 const DEFAULT_ROW_HEIGHTS = {
-  image: 180,
+  image: 240,    // 영상 - 더 크게
   source: 80,
   effect: 80,
   note: 60,
@@ -40,7 +40,6 @@ function NewPlanContent() {
   ]);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
 
-  // 행 높이 상태
   const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
   const [resizing, setResizing] = useState<string | null>(null);
   const startY = useRef(0);
@@ -61,16 +60,13 @@ function NewPlanContent() {
     loadBrand();
   }, [brandId, router]);
 
-  // 변경사항 있는지 확인
   const hasUnsavedChanges = () => {
-    // 제목이 입력되었거나, 스토리보드에 내용이 있으면 변경됨으로 간주
     if (title.trim()) return true;
     return storyboard.some(item => 
       item.image || item.source || item.effect || item.note || item.narration
     );
   };
 
-  // 리사이즈 핸들러
   const handleResizeStart = (rowKey: string, e: React.MouseEvent) => {
     e.preventDefault();
     setResizing(rowKey);
@@ -82,7 +78,7 @@ function NewPlanContent() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizing) return;
       const diff = e.clientY - startY.current;
-      const newHeight = Math.max(40, Math.min(300, startHeight.current + diff));
+      const newHeight = Math.max(40, Math.min(400, startHeight.current + diff));
       setRowHeights(prev => ({ ...prev, [resizing]: newHeight }));
     };
 
@@ -122,7 +118,6 @@ function NewPlanContent() {
     router.push(`/?brand=${brandId}`);
   };
 
-  // 저장하고 나가기
   const handleSaveAndExit = async () => {
     if (!title.trim()) {
       alert('기획안 제목을 입력해주세요.');
@@ -146,7 +141,6 @@ function NewPlanContent() {
     router.push(`/?brand=${brandId}`);
   };
 
-  // 돌아가기 클릭
   const handleBack = () => {
     if (hasUnsavedChanges()) {
       setShowUnsavedModal(true);
@@ -262,7 +256,6 @@ function NewPlanContent() {
         </div>
       )}
 
-      {/* 숨겨진 파일 입력 */}
       <input
         type="file"
         ref={fileInputRef}
@@ -271,9 +264,9 @@ function NewPlanContent() {
         className="hidden"
       />
 
-      {/* 상단 네비게이션 */}
-      <header className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-6 py-4">
-        <div className="max-w-full mx-auto flex items-center justify-between">
+      {/* 상단 네비게이션 - 좌우 15% 여백 */}
+      <header className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-[15%] py-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={handleBack}
@@ -300,10 +293,9 @@ function NewPlanContent() {
         </div>
       </header>
 
-      {/* 메인 콘텐츠 */}
-      <main className="px-6 py-8">
-        {/* 제목 입력 */}
-        <div className="mb-8 max-w-4xl">
+      {/* 메인 콘텐츠 - 좌우 15% 여백 */}
+      <main className="px-[15%] py-8">
+        <div className="mb-8">
           <input
             type="text"
             value={title}
@@ -325,7 +317,7 @@ function NewPlanContent() {
                 {rowLabels.map((row) => (
                   <div
                     key={row.key}
-                    className="relative border-b border-[#e5e7eb] bg-[#fafafa]"
+                    className={`relative border-b border-[#e5e7eb] ${row.key === 'narration' ? 'bg-[#faf8f5]' : 'bg-[#fafafa]'}`}
                     style={{ height: rowHeights[row.key as keyof typeof rowHeights] }}
                   >
                     <div className="flex items-center justify-center h-full px-2">
@@ -333,12 +325,11 @@ function NewPlanContent() {
                         {row.label}
                       </span>
                     </div>
+                    {/* 리사이즈 핸들 - 투명하게 (디자인 제거) */}
                     <div
-                      className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-[#f97316]/20 group flex items-center justify-center"
+                      className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize hover:bg-[#f97316]/10"
                       onMouseDown={(e) => handleResizeStart(row.key, e)}
-                    >
-                      <div className="w-8 h-1 rounded-full bg-[#d1d5db] group-hover:bg-[#f97316] transition-colors" />
-                    </div>
+                    />
                   </div>
                 ))}
               </div>
@@ -439,8 +430,9 @@ function NewPlanContent() {
                     />
                   </div>
 
+                  {/* 대본 - 은은한 베이지색 배경 */}
                   <div 
-                    className="border-b border-[#e5e7eb]"
+                    className="border-b border-[#e5e7eb] bg-[#faf8f5]"
                     style={{ height: rowHeights.narration }}
                   >
                     <textarea

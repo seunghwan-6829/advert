@@ -20,7 +20,7 @@ import Link from 'next/link';
 
 // 기본 행 높이 설정
 const DEFAULT_ROW_HEIGHTS = {
-  image: 180,
+  image: 240,    // 영상 - 더 크게
   source: 80,
   effect: 80,
   note: 60,
@@ -37,13 +37,12 @@ function PlanDetailContent() {
   const [uploadingColumn, setUploadingColumn] = useState<number | null>(null);
 
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [originalPlan, setOriginalPlan] = useState<Plan | null>(null); // 원본 데이터
+  const [originalPlan, setOriginalPlan] = useState<Plan | null>(null);
   const [brandName, setBrandName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showUnsavedModal, setShowUnsavedModal] = useState(false); // 저장 안됨 모달
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   
-  // 행 높이 상태
   const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
   const [resizing, setResizing] = useState<string | null>(null);
   const startY = useRef(0);
@@ -53,7 +52,7 @@ function PlanDetailContent() {
     const loadData = async () => {
       const planData = await getPlanById(planId);
       setPlan(planData);
-      setOriginalPlan(planData ? JSON.parse(JSON.stringify(planData)) : null); // 깊은 복사
+      setOriginalPlan(planData ? JSON.parse(JSON.stringify(planData)) : null);
       
       if (planData?.brandId) {
         const brand = await getBrandById(planData.brandId);
@@ -67,13 +66,11 @@ function PlanDetailContent() {
     loadData();
   }, [planId]);
 
-  // 변경사항 있는지 확인
   const hasUnsavedChanges = () => {
     if (!plan || !originalPlan) return false;
     return JSON.stringify(plan) !== JSON.stringify(originalPlan);
   };
 
-  // 리사이즈 핸들러
   const handleResizeStart = (rowKey: string, e: React.MouseEvent) => {
     e.preventDefault();
     setResizing(rowKey);
@@ -85,7 +82,7 @@ function PlanDetailContent() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!resizing) return;
       const diff = e.clientY - startY.current;
-      const newHeight = Math.max(40, Math.min(300, startHeight.current + diff));
+      const newHeight = Math.max(40, Math.min(400, startHeight.current + diff));
       setRowHeights(prev => ({ ...prev, [resizing]: newHeight }));
     };
 
@@ -108,11 +105,10 @@ function PlanDetailContent() {
     if (!plan) return;
     setSaving(true);
     await updatePlan(plan.id, plan);
-    setOriginalPlan(JSON.parse(JSON.stringify(plan))); // 저장 후 원본 업데이트
+    setOriginalPlan(JSON.parse(JSON.stringify(plan)));
     setSaving(false);
   };
 
-  // 저장하고 나가기
   const handleSaveAndExit = async () => {
     if (!plan) return;
     setSaving(true);
@@ -122,7 +118,6 @@ function PlanDetailContent() {
     router.push(backUrl);
   };
 
-  // 돌아가기 클릭
   const handleBack = () => {
     if (hasUnsavedChanges()) {
       setShowUnsavedModal(true);
@@ -284,7 +279,6 @@ function PlanDetailContent() {
         </div>
       )}
 
-      {/* 숨겨진 파일 입력 */}
       <input
         type="file"
         ref={fileInputRef}
@@ -294,8 +288,8 @@ function PlanDetailContent() {
       />
 
       {/* 상단 네비게이션 */}
-      <header className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-6 py-4">
-        <div className="max-w-full mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-[15%] py-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={handleBack}
@@ -331,10 +325,9 @@ function PlanDetailContent() {
         </div>
       </header>
 
-      {/* 메인 콘텐츠 */}
-      <main className="px-6 py-8">
-        {/* 제목 입력 */}
-        <div className="mb-8 max-w-4xl">
+      {/* 메인 콘텐츠 - 좌우 15% 여백 */}
+      <main className="px-[15%] py-8">
+        <div className="mb-8">
           <input
             type="text"
             value={plan.title}
@@ -358,7 +351,7 @@ function PlanDetailContent() {
                 {rowLabels.map((row) => (
                   <div
                     key={row.key}
-                    className="relative border-b border-[#e5e7eb] bg-[#fafafa]"
+                    className={`relative border-b border-[#e5e7eb] ${row.key === 'narration' ? 'bg-[#faf8f5]' : 'bg-[#fafafa]'}`}
                     style={{ height: rowHeights[row.key as keyof typeof rowHeights] }}
                   >
                     <div className="flex items-center justify-center h-full px-2">
@@ -366,12 +359,11 @@ function PlanDetailContent() {
                         {row.label}
                       </span>
                     </div>
+                    {/* 리사이즈 핸들 - 투명하게 (디자인 제거) */}
                     <div
-                      className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize hover:bg-[#f97316]/20 group flex items-center justify-center"
+                      className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize hover:bg-[#f97316]/10"
                       onMouseDown={(e) => handleResizeStart(row.key, e)}
-                    >
-                      <div className="w-8 h-1 rounded-full bg-[#d1d5db] group-hover:bg-[#f97316] transition-colors" />
-                    </div>
+                    />
                   </div>
                 ))}
               </div>
@@ -472,8 +464,9 @@ function PlanDetailContent() {
                     />
                   </div>
 
+                  {/* 대본 - 은은한 베이지색 배경 */}
                   <div 
-                    className="border-b border-[#e5e7eb]"
+                    className="border-b border-[#e5e7eb] bg-[#faf8f5]"
                     style={{ height: rowHeights.narration }}
                   >
                     <textarea
