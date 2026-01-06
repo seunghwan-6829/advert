@@ -21,11 +21,21 @@ export interface StoryboardItem {
   narration: string; // 대본/나레이션
 }
 
+// 행 높이 설정
+export interface RowHeights {
+  image: number;
+  source: number;
+  effect: number;
+  note: number;
+  narration: number;
+}
+
 export interface Plan {
   id: string;
   brandId: string; // 소속 브랜드 ID (필수)
   title: string; // 기획안 제목
   storyboard: StoryboardItem[]; // 스토리보드
+  rowHeights?: RowHeights; // 행 높이 설정 (선택)
   createdAt: string;
   updatedAt: string;
 }

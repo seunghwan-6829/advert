@@ -317,7 +317,7 @@ function NewPlanContent() {
                 {rowLabels.map((row) => (
                   <div
                     key={row.key}
-                    className={`relative border-b border-[#e5e7eb] ${row.key === 'narration' ? 'bg-[#faf8f5]' : 'bg-[#fafafa]'}`}
+                    className={`relative border-b border-[#e5e7eb] ${row.key === 'narration' ? 'bg-[#f5efe6]' : 'bg-[#fafafa]'}`}
                     style={{ height: rowHeights[row.key as keyof typeof rowHeights] }}
                   >
                     <div className="flex items-center justify-center h-full px-2">
@@ -432,7 +432,7 @@ function NewPlanContent() {
 
                   {/* 대본 - 은은한 베이지색 배경 */}
                   <div 
-                    className="border-b border-[#e5e7eb] bg-[#faf8f5]"
+                    className="border-b border-[#e5e7eb] bg-[#f5efe6]"
                     style={{ height: rowHeights.narration }}
                   >
                     <textarea

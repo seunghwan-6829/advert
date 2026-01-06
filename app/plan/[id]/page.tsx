@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Plan, StoryboardItem } from '@/types/plan';
+import { Plan, StoryboardItem, RowHeights } from '@/types/plan';
 import { getPlanById, updatePlan, deletePlan, createEmptyStoryboardItem, getBrandById } from '@/lib/store';
 import {
   ArrowLeft,
@@ -54,6 +54,11 @@ function PlanDetailContent() {
       setPlan(planData);
       setOriginalPlan(planData ? JSON.parse(JSON.stringify(planData)) : null);
       
+      // 저장된 행 높이가 있으면 불러오기
+      if (planData?.rowHeights) {
+        setRowHeights({ ...DEFAULT_ROW_HEIGHTS, ...planData.rowHeights });
+      }
+      
       if (planData?.brandId) {
         const brand = await getBrandById(planData.brandId);
         if (brand) {
@@ -68,7 +73,10 @@ function PlanDetailContent() {
 
   const hasUnsavedChanges = () => {
     if (!plan || !originalPlan) return false;
-    return JSON.stringify(plan) !== JSON.stringify(originalPlan);
+    // plan 비교 + rowHeights 비교
+    const planChanged = JSON.stringify(plan) !== JSON.stringify(originalPlan);
+    const heightsChanged = JSON.stringify(rowHeights) !== JSON.stringify(originalPlan.rowHeights || DEFAULT_ROW_HEIGHTS);
+    return planChanged || heightsChanged;
   };
 
   const handleResizeStart = (rowKey: string, e: React.MouseEvent) => {
@@ -104,15 +112,20 @@ function PlanDetailContent() {
   const handleSave = async () => {
     if (!plan) return;
     setSaving(true);
-    await updatePlan(plan.id, plan);
-    setOriginalPlan(JSON.parse(JSON.stringify(plan)));
+    // rowHeights도 함께 저장
+    const planToSave = { ...plan, rowHeights };
+    await updatePlan(plan.id, planToSave);
+    setPlan(planToSave);
+    setOriginalPlan(JSON.parse(JSON.stringify(planToSave)));
     setSaving(false);
   };
 
   const handleSaveAndExit = async () => {
     if (!plan) return;
     setSaving(true);
-    await updatePlan(plan.id, plan);
+    // rowHeights도 함께 저장
+    const planToSave = { ...plan, rowHeights };
+    await updatePlan(plan.id, planToSave);
     setSaving(false);
     setShowUnsavedModal(false);
     router.push(backUrl);
@@ -351,7 +364,7 @@ function PlanDetailContent() {
                 {rowLabels.map((row) => (
                   <div
                     key={row.key}
-                    className={`relative border-b border-[#e5e7eb] ${row.key === 'narration' ? 'bg-[#faf8f5]' : 'bg-[#fafafa]'}`}
+                    className={`relative border-b border-[#e5e7eb] ${row.key === 'narration' ? 'bg-[#f5efe6]' : 'bg-[#fafafa]'}`}
                     style={{ height: rowHeights[row.key as keyof typeof rowHeights] }}
                   >
                     <div className="flex items-center justify-center h-full px-2">
@@ -466,7 +479,7 @@ function PlanDetailContent() {
 
                   {/* 대본 - 은은한 베이지색 배경 */}
                   <div 
-                    className="border-b border-[#e5e7eb] bg-[#faf8f5]"
+                    className="border-b border-[#e5e7eb] bg-[#f5efe6]"
                     style={{ height: rowHeights.narration }}
                   >
                     <textarea
