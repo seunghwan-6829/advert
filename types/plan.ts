@@ -1,5 +1,15 @@
 // 기획안 타입 정의
 
+// 브랜드 (프로젝트/폴더) 타입
+export interface Brand {
+  id: string;
+  name: string;
+  logo?: string; // 로고 URL 또는 base64
+  order: number; // 정렬 순서
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PlanSection {
   id: string;
   sectionType: string; // "상단CTA", "상단CTA_베리1", "상단CTA_베리2", "본문내용"
@@ -12,6 +22,7 @@ export interface PlanSection {
 
 export interface Plan {
   id: string;
+  brandId?: string; // 소속 브랜드 ID
   title: string; // 예: "바랑소리_에거코퍼레이션_250924"
   videoNumber: number; // 영상 번호 (1번, 2번...)
   sourceCost: number; // 소스 비용
@@ -27,6 +38,7 @@ export interface Plan {
 
 export interface PlanFormData {
   title: string;
+  brandId?: string;
   videoNumber: number;
   sourceCost: number;
   productionCost: number;
@@ -46,4 +58,3 @@ export const SECTION_TYPES = [
 ] as const;
 
 export type SectionType = typeof SECTION_TYPES[number];
-

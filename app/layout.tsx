@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
+import { AdminProvider } from "@/lib/AdminContext";
 
 const notoSansKR = Noto_Sans_KR({
   variable: "--font-noto-sans-kr",
@@ -21,9 +22,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body
-        className={`${notoSansKR.variable} font-sans antialiased bg-[#121212] text-white`}
+        className={`${notoSansKR.variable} font-sans antialiased bg-[#f8f6f2] text-[#1a1a1a]`}
       >
-        {children}
+        <AdminProvider>
+          {children}
+        </AdminProvider>
       </body>
     </html>
   );
