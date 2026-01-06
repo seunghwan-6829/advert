@@ -13,6 +13,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -23,11 +24,19 @@ export default function Home() {
     loadPlans();
   }, []);
 
-  // 검색 필터링
-  const filteredPlans = plans.filter(plan => 
-    plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    plan.keywords.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // 브랜드 + 검색 필터링
+  const filteredPlans = plans.filter(plan => {
+    // 브랜드 필터
+    if (selectedBrandId && plan.brandId !== selectedBrandId) {
+      return false;
+    }
+    // 검색 필터
+    if (searchQuery) {
+      return plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        plan.keywords.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+    return true;
+  });
 
   // 통계 계산
   const stats = {
@@ -40,7 +49,11 @@ export default function Home() {
   return (
     <div className="flex min-h-screen">
       {/* 사이드바 */}
-      <Sidebar plans={plans} />
+      <Sidebar 
+        plans={plans} 
+        selectedBrandId={selectedBrandId}
+        onSelectBrand={setSelectedBrandId}
+      />
 
       {/* 메인 콘텐츠 */}
       <main className="flex-1 ml-60 p-8">

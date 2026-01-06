@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, FileText, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash2, ChevronDown, ChevronRight, User } from 'lucide-react';
+import { Plus, FileText, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash2, User } from 'lucide-react';
 import Link from 'next/link';
 import { Plan, Brand } from '@/types/plan';
 import { useAuth } from '@/lib/AuthContext';
@@ -14,12 +14,13 @@ import AuthModal from './AuthModal';
 interface SidebarProps {
   plans: Plan[];
   currentPlanId?: string;
+  selectedBrandId?: string | null;
+  onSelectBrand?: (brandId: string | null) => void;
 }
 
-export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
+export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelectBrand }: SidebarProps) {
   const { user, isAdmin, signOut, isLoading } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [expandedBrands, setExpandedBrands] = useState<Set<string>>(new Set());
   const [isManageMode, setIsManageMode] = useState(false);
   
   // 모달 상태
@@ -41,15 +42,12 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
     setBrands(data);
   };
 
-  // 브랜드 토글
-  const toggleBrand = (brandId: string) => {
-    const newExpanded = new Set(expandedBrands);
-    if (newExpanded.has(brandId)) {
-      newExpanded.delete(brandId);
-    } else {
-      newExpanded.add(brandId);
+  // 브랜드 선택
+  const handleSelectBrand = (brandId: string) => {
+    if (onSelectBrand) {
+      // 같은 브랜드 클릭 시 선택 해제 (전체 보기)
+      onSelectBrand(selectedBrandId === brandId ? null : brandId);
     }
-    setExpandedBrands(newExpanded);
   };
 
   // 프로젝트 관리 클릭
@@ -118,9 +116,6 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
     setAuthModalMode(mode);
     setShowAuthModal(true);
   };
-
-  // 브랜드에 속하지 않은 기획안들
-  const unassignedPlans = plans.filter(p => !p.brandId);
 
   // 브랜드별 기획안 필터링
   const getPlansByBrand = (brandId: string) => {
@@ -207,20 +202,34 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
         {/* 브랜드/프로젝트 목록 */}
         <div className="flex-1 overflow-y-auto px-3">
           <nav className="space-y-1">
-            {brands.length === 0 && unassignedPlans.length === 0 ? (
+            {brands.length === 0 ? (
               <p className="text-xs text-[#9ca3af] px-2 py-4">
                 아직 프로젝트가 없습니다
               </p>
             ) : (
               <>
+                {/* 전체 보기 버튼 */}
+                <button
+                  onClick={() => onSelectBrand && onSelectBrand(null)}
+                  className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors mb-1 ${
+                    !selectedBrandId
+                      ? 'bg-[#fff7ed] text-[#f97316] font-medium'
+                      : 'text-[#4b5563] hover:bg-[#fff7ed]'
+                  }`}
+                >
+                  <FileText size={16} />
+                  <span>전체 보기</span>
+                  <span className="text-xs text-[#9ca3af]">({plans.length})</span>
+                </button>
+
                 {/* 브랜드 목록 */}
                 {brands.map((brand) => {
                   const brandPlans = getPlansByBrand(brand.id);
-                  const isExpanded = expandedBrands.has(brand.id);
+                  const isSelected = selectedBrandId === brand.id;
                   
                   return (
                     <div key={brand.id} className="mb-1">
-                      {/* 브랜드 헤더 */}
+                      {/* 브랜드 버튼 */}
                       <div className="flex items-center group">
                         {isManageMode && (
                           <div className="p-1 cursor-grab text-[#9ca3af] hover:text-[#6b7280]">
@@ -229,24 +238,24 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
                         )}
                         
                         <button
-                          onClick={() => toggleBrand(brand.id)}
-                          className="flex-1 flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[#4b5563] hover:bg-[#fff7ed] transition-colors"
+                          onClick={() => handleSelectBrand(brand.id)}
+                          className={`flex-1 flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors ${
+                            isSelected
+                              ? 'bg-[#fff7ed] text-[#f97316] font-medium'
+                              : 'text-[#4b5563] hover:bg-[#fff7ed]'
+                          }`}
                         >
-                          {isExpanded ? (
-                            <ChevronDown size={14} className="text-[#f97316]" />
-                          ) : (
-                            <ChevronRight size={14} className="text-[#9ca3af]" />
-                          )}
-                          
                           {brand.logo ? (
                             <img src={brand.logo} alt="" className="w-5 h-5 rounded object-cover" />
                           ) : (
-                            <div className="w-5 h-5 rounded bg-[#fed7aa] flex items-center justify-center text-xs text-[#c2410c] font-medium">
+                            <div className={`w-5 h-5 rounded flex items-center justify-center text-xs font-medium ${
+                              isSelected ? 'bg-[#f97316] text-white' : 'bg-[#fed7aa] text-[#c2410c]'
+                            }`}>
                               {brand.name.charAt(0)}
                             </div>
                           )}
                           
-                          <span className="truncate font-medium">{brand.name}</span>
+                          <span className="truncate">{brand.name}</span>
                           <span className="text-xs text-[#9ca3af]">({brandPlans.length})</span>
                         </button>
 
@@ -267,54 +276,9 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
                           </div>
                         )}
                       </div>
-
-                      {/* 브랜드 내 기획안 목록 */}
-                      {isExpanded && (
-                        <div className="ml-6 mt-1 space-y-0.5">
-                          {brandPlans.length === 0 ? (
-                            <p className="text-xs text-[#9ca3af] px-2 py-1">기획안 없음</p>
-                          ) : (
-                            brandPlans.map((plan) => (
-                              <Link key={plan.id} href={`/plan/${plan.id}`}>
-                                <div
-                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
-                                    currentPlanId === plan.id
-                                      ? 'bg-[#fff7ed] text-[#f97316]'
-                                      : 'text-[#6b7280] hover:bg-[#fff7ed]'
-                                  }`}
-                                >
-                                  <FileText size={14} />
-                                  <span className="truncate">{plan.title}</span>
-                                </div>
-                              </Link>
-                            ))
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
-
-                {/* 미분류 기획안 */}
-                {unassignedPlans.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-[#f0e6dc]">
-                    <p className="text-xs text-[#9ca3af] px-2 mb-2">미분류</p>
-                    {unassignedPlans.map((plan) => (
-                      <Link key={plan.id} href={`/plan/${plan.id}`}>
-                        <div
-                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
-                            currentPlanId === plan.id
-                              ? 'bg-[#fff7ed] text-[#f97316]'
-                              : 'text-[#6b7280] hover:bg-[#fff7ed]'
-                          }`}
-                        >
-                          <FileText size={14} />
-                          <span className="truncate">{plan.title}</span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
               </>
             )}
           </nav>
@@ -322,10 +286,10 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
 
         {/* 하단 메뉴 */}
         <div className="p-3 border-t border-[#f0e6dc] space-y-1">
-          {/* 관리자 전용 페이지 - 테스트용으로 항상 표시 */}
+          {/* 관리자 전용 페이지 */}
           <Link href="/admin">
-            <button className="w-full text-left px-3 py-2 mb-1 bg-[#f0fdf4] rounded-lg hover:bg-[#dcfce7] transition-colors">
-              <p className="text-sm text-[#15803d] font-medium">관리자 전용 페이지</p>
+            <button className="w-full text-left px-3 py-2 mb-1 bg-[#1a1a1a] rounded-lg hover:bg-[#333333] transition-colors">
+              <p className="text-sm text-white font-medium">관리자 전용 페이지</p>
             </button>
           </Link>
           
@@ -374,7 +338,7 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
         }}
         onConfirm={handleConfirmDelete}
         title="프로젝트 삭제"
-        message={`"${deletingBrand?.name}" 프로젝트를 정말 삭제하시겠습니까? 이 프로젝트에 포함된 기획안들은 미분류로 이동됩니다.`}
+        message={`"${deletingBrand?.name}" 프로젝트를 정말 삭제하시겠습니까? 이 프로젝트에 포함된 기획안들도 함께 삭제됩니다.`}
         isLoading={isDeleting}
       />
 
