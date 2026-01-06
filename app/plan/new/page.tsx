@@ -35,6 +35,8 @@ function NewPlanContent() {
   const [brandName, setBrandName] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
+  const [ctaText, setCtaText] = useState('');
+  const [summary, setSummary] = useState('');
   const [storyboard, setStoryboard] = useState<StoryboardItem[]>([
     createEmptyStoryboardItem(0),
   ]);
@@ -62,6 +64,8 @@ function NewPlanContent() {
 
   const hasUnsavedChanges = () => {
     if (title.trim()) return true;
+    if (ctaText.trim()) return true;
+    if (summary.trim()) return true;
     return storyboard.some(item => 
       item.image || item.source || item.effect || item.note || item.narration
     );
@@ -112,6 +116,8 @@ function NewPlanContent() {
     await createPlan({
       title,
       brandId,
+      ctaText,
+      summary,
       storyboard,
     });
     setSaving(false);
@@ -134,6 +140,8 @@ function NewPlanContent() {
     await createPlan({
       title,
       brandId,
+      ctaText,
+      summary,
       storyboard,
     });
     setSaving(false);
@@ -293,17 +301,45 @@ function NewPlanContent() {
         </div>
       </header>
 
-      {/* 메인 콘텐츠 - 좌우 15% 여백 */}
+      {/* 메인 콘텐츠 - 좌우 8% 여백 */}
       <main className="px-[8%] py-8">
-        <div className="mb-8">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="text-3xl font-bold bg-transparent border-none outline-none w-full text-[#1a1a1a] placeholder:text-[#d1d5db]"
-            placeholder="기획안 제목을 입력하세요"
-            autoFocus
-          />
+        {/* 상단 정보 영역 */}
+        <div className="mb-8 flex justify-between items-start gap-8">
+          {/* 왼쪽: 제목 */}
+          <div className="flex-1">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-3xl font-bold bg-transparent border-none outline-none w-full text-[#1a1a1a] placeholder:text-[#d1d5db]"
+              placeholder="기획안 제목을 입력하세요"
+              autoFocus
+            />
+          </div>
+          
+          {/* 오른쪽: CTA 문장 & 카드 미리보기 */}
+          <div className="flex gap-4 flex-shrink-0">
+            <div className="w-64">
+              <label className="block text-sm font-medium text-[#6b7280] mb-2">CTA 문장</label>
+              <input
+                type="text"
+                value={ctaText}
+                onChange={(e) => setCtaText(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-[#e5e7eb] text-sm focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 outline-none transition-all"
+                placeholder="CTA 문장 입력..."
+              />
+            </div>
+            <div className="w-64">
+              <label className="block text-sm font-medium text-[#6b7280] mb-2">카드 미리보기</label>
+              <input
+                type="text"
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-[#e5e7eb] text-sm focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 outline-none transition-all"
+                placeholder="카드에 표시될 설명..."
+              />
+            </div>
+          </div>
         </div>
 
         {/* 가로 스크롤 스토리보드 */}

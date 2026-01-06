@@ -34,6 +34,8 @@ export interface Plan {
   id: string;
   brandId: string; // 소속 브랜드 ID (필수)
   title: string; // 기획안 제목
+  ctaText?: string; // CTA 문장
+  summary?: string; // 카드 미리보기 텍스트
   storyboard: StoryboardItem[]; // 스토리보드
   rowHeights?: RowHeights; // 행 높이 설정 (선택)
   createdAt: string;

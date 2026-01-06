@@ -32,9 +32,9 @@ export default function PlanCard({ plan }: PlanCardProps) {
           {plan.title}
         </h3>
 
-        {/* 첫 번째 장면 미리보기 */}
+        {/* 미리보기 텍스트 (summary 우선, 없으면 첫 번째 장면) */}
         <p className="text-sm text-[#6b7280] mb-4 line-clamp-2">
-          {firstScene?.narration || firstScene?.source || firstScene?.note || '스토리보드 내용이 없습니다.'}
+          {plan.summary || firstScene?.narration || firstScene?.source || firstScene?.note || '스토리보드 내용이 없습니다.'}
         </p>
 
         {/* 하단: 자세히 보기 */}

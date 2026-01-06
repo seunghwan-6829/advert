@@ -386,7 +386,10 @@ const transformFromSupabase = (data: any): Plan => ({
   id: data.id,
   brandId: data.brand_id,
   title: data.title,
+  ctaText: data.cta_text || '',
+  summary: data.summary || '',
   storyboard: data.storyboard || [],
+  rowHeights: data.row_heights || undefined,
   createdAt: data.created_at,
   updatedAt: data.updated_at,
 });
@@ -395,7 +398,10 @@ const transformToSupabase = (plan: Plan) => ({
   id: plan.id,
   brand_id: plan.brandId,
   title: plan.title,
+  cta_text: plan.ctaText || '',
+  summary: plan.summary || '',
   storyboard: plan.storyboard,
+  row_heights: plan.rowHeights || null,
   created_at: plan.createdAt,
   updated_at: plan.updatedAt,
 });
