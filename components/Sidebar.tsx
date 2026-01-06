@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, FileText, Settings, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash2, ChevronDown, ChevronRight, User, Shield } from 'lucide-react';
+import { Plus, FileText, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash2, ChevronDown, ChevronRight, User } from 'lucide-react';
 import Link from 'next/link';
 import { Plan, Brand } from '@/types/plan';
 import { useAuth } from '@/lib/AuthContext';
@@ -326,12 +326,11 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
         {/* 하단 메뉴 */}
         <div className="p-3 border-t border-[#f0e6dc] space-y-1">
           {user && isAdmin && (
-            <div className="px-3 py-2 mb-1 bg-[#f0fdf4] rounded-lg">
-              <p className="text-xs text-[#15803d] flex items-center gap-1">
-                <Shield size={12} />
-                관리자 모드 활성화
-              </p>
-            </div>
+            <Link href="/admin">
+              <button className="w-full text-left px-3 py-2 mb-1 bg-[#f0fdf4] rounded-lg hover:bg-[#dcfce7] transition-colors">
+                <p className="text-sm text-[#15803d] font-medium">관리자 전용 페이지</p>
+              </button>
+            </Link>
           )}
           
           {user ? (
