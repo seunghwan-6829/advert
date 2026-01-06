@@ -27,12 +27,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 기본 권한 (user_permissions 테이블이 없을 때 사용)
+// 기본 권한 (에러 시 또는 권한 없을 때)
 const DEFAULT_PERMISSIONS: UserPermissions = {
-  canCreatePlans: true,
-  canViewProjects: true,
-  allowedBrandIds: [], // 빈 배열 = 전체 접근
+  canCreatePlans: false,
+  canViewProjects: false,
+  allowedBrandIds: [],
 };
+
+// 타임아웃 Promise
+const timeout = (ms: number) => new Promise((_, reject) => 
+  setTimeout(() => reject(new Error('timeout')), ms)
+);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -42,18 +47,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 관리자 여부 확인
   const isAdmin = user ? ADMIN_EMAILS.includes(user.email || '') : false;
 
-  // 권한 새로고침 (현재는 기본값 사용)
-  const refreshPermissions = async () => {
-    if (user) {
-      // 관리자는 모든 권한
-      if (isAdmin) {
-        setPermissions(DEFAULT_PERMISSIONS);
-        return;
+  // 유저 권한 가져오기 (타임아웃 2초)
+  const fetchPermissions = async (userId: string): Promise<UserPermissions> => {
+    if (!supabase) return DEFAULT_PERMISSIONS;
+    
+    try {
+      const result = await Promise.race([
+        supabase
+          .from('user_permissions')
+          .select('*')
+          .eq('user_id', userId)
+          .single(),
+        timeout(2000)
+      ]) as { data: { can_create_plans: boolean; can_view_projects: boolean; allowed_brand_ids: string[] } | null; error: unknown };
+      
+      if (result.error || !result.data) {
+        return DEFAULT_PERMISSIONS;
       }
       
-      // 일반 유저도 기본 권한 부여 (user_permissions 테이블 없이 작동)
-      setPermissions(DEFAULT_PERMISSIONS);
+      return {
+        canCreatePlans: result.data.can_create_plans ?? false,
+        canViewProjects: result.data.can_view_projects ?? false,
+        allowedBrandIds: result.data.allowed_brand_ids ?? [],
+      };
+    } catch {
+      return DEFAULT_PERMISSIONS;
     }
+  };
+
+  // 권한 생성 (없으면)
+  const createPermission = async (userId: string, email: string): Promise<void> => {
+    if (!supabase) return;
+    
+    try {
+      await supabase
+        .from('user_permissions')
+        .upsert({
+          user_id: userId,
+          email: email,
+          can_create_plans: false,
+          can_view_projects: false,
+          allowed_brand_ids: [],
+        }, { onConflict: 'user_id' });
+    } catch {
+      // 무시
+    }
+  };
+
+  // 권한 새로고침
+  const refreshPermissions = async () => {
+    if (!user) return;
+    
+    if (isAdmin) {
+      setPermissions({
+        canCreatePlans: true,
+        canViewProjects: true,
+        allowedBrandIds: [],
+      });
+      return;
+    }
+    
+    const perms = await fetchPermissions(user.id);
+    setPermissions(perms);
   };
 
   useEffect(() => {
@@ -65,33 +120,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
 
     // 현재 세션 확인
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
       
       if (session?.user) {
         setUser(session.user);
-        // 기본 권한 설정
-        setPermissions(DEFAULT_PERMISSIONS);
+        
+        // 관리자는 모든 권한
+        if (ADMIN_EMAILS.includes(session.user.email || '')) {
+          setPermissions({
+            canCreatePlans: true,
+            canViewProjects: true,
+            allowedBrandIds: [],
+          });
+        } else {
+          // 일반 유저 권한 조회
+          const perms = await fetchPermissions(session.user.id);
+          if (mounted) setPermissions(perms);
+          
+          // 권한 레코드 없으면 생성
+          if (session.user.email) {
+            createPermission(session.user.id, session.user.email);
+          }
+        }
       }
-      setIsLoading(false);
+      
+      if (mounted) setIsLoading(false);
     });
 
     // 인증 상태 변경 구독
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (!mounted) return;
-        
-        // INITIAL_SESSION 이벤트는 무시
         if (event === 'INITIAL_SESSION') return;
         
         if (session?.user) {
           setUser(session.user);
-          setPermissions(DEFAULT_PERMISSIONS);
+          
+          if (ADMIN_EMAILS.includes(session.user.email || '')) {
+            setPermissions({
+              canCreatePlans: true,
+              canViewProjects: true,
+              allowedBrandIds: [],
+            });
+          } else {
+            const perms = await fetchPermissions(session.user.id);
+            if (mounted) setPermissions(perms);
+            
+            if (session.user.email) {
+              createPermission(session.user.id, session.user.email);
+            }
+          }
         } else {
           setUser(null);
           setPermissions(null);
         }
-        setIsLoading(false);
+        
+        if (mounted) setIsLoading(false);
       }
     );
 
@@ -115,11 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
 
-    if (error) {
-      return { error: error.message };
-    }
-
-    return { error: null };
+    return { error: error?.message || null };
   };
 
   // 로그인
@@ -133,11 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
 
-    if (error) {
-      return { error: error.message };
-    }
-
-    return { error: null };
+    return { error: error?.message || null };
   };
 
   // 로그아웃
