@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, FileText, Settings, Search } from 'lucide-react';
+import { Plus, FileText, Settings, Home, LogOut, FolderKanban } from 'lucide-react';
 import Link from 'next/link';
 import { Plan } from '@/types/plan';
 
@@ -11,54 +11,67 @@ interface SidebarProps {
 
 export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
   return (
-    <aside className="w-64 h-screen bg-[#191919] text-[#9b9a97] flex flex-col border-r border-[#2f2f2f] fixed left-0 top-0">
-      {/* 헤더 */}
-      <div className="p-3 border-b border-[#2f2f2f]">
-        <h1 className="text-white font-semibold text-sm flex items-center gap-2">
-          <FileText size={18} />
-          기획안 관리
-        </h1>
-      </div>
-
-      {/* 검색 */}
-      <div className="p-2">
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#2f2f2f] cursor-pointer text-sm">
-          <Search size={16} />
-          <span>검색</span>
+    <aside className="w-60 h-screen bg-white flex flex-col border-r border-[#e8e8e8] fixed left-0 top-0">
+      {/* 로고 영역 */}
+      <div className="p-4 border-b border-[#e8e8e8]">
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold text-[#1a1a1a]">여기에 로고 넣기</span>
         </div>
-      </div>
-
-      {/* 새 기획안 버튼 */}
-      <div className="px-2">
-        <Link href="/plan/new">
-          <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#2f2f2f] text-sm transition-colors">
-            <Plus size={16} />
-            <span>새 기획안</span>
-          </button>
+        <Link href="/">
+          <div className="flex items-center gap-2 mt-2 text-sm text-[#6b7280] hover:text-[#1a1a1a] transition-colors cursor-pointer">
+            <Home size={16} />
+            <span>(홈 아이콘) 홈</span>
+          </div>
         </Link>
       </div>
 
-      {/* 기획안 목록 */}
-      <div className="flex-1 overflow-y-auto mt-2">
-        <div className="px-3 py-1 text-xs text-[#6b6b6b] uppercase tracking-wider">
-          기획안 목록
+      {/* 회원가입/로그인 버튼 */}
+      <div className="p-3 flex gap-2">
+        <button className="flex-1 py-2 px-3 bg-[#3b82f6] text-white text-sm font-medium rounded-lg hover:bg-[#2563eb] transition-colors">
+          회원가입
+        </button>
+        <button className="flex-1 py-2 px-3 bg-white border border-[#e8e8e8] text-[#1a1a1a] text-sm font-medium rounded-lg hover:bg-[#f3f4f6] transition-colors">
+          로그인
+        </button>
+      </div>
+
+      {/* 프로젝트 관리 */}
+      <div className="px-3 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-[#1a1a1a] flex items-center gap-2">
+            <FolderKanban size={16} />
+            프로젝트 관리
+          </span>
+          <Link href="/plan/new">
+            <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#f3f4f6] text-[#6b7280] hover:text-[#1a1a1a] transition-colors">
+              <Plus size={16} />
+            </button>
+          </Link>
         </div>
-        <nav className="px-2">
+      </div>
+
+      {/* 기획안 목록 */}
+      <div className="flex-1 overflow-y-auto px-3">
+        <nav className="space-y-1">
           {plans.length === 0 ? (
-            <p className="text-xs text-[#6b6b6b] px-2 py-4">
+            <p className="text-xs text-[#9ca3af] px-2 py-4">
               아직 기획안이 없습니다
             </p>
           ) : (
             plans.map((plan) => (
               <Link key={plan.id} href={`/plan/${plan.id}`}>
                 <div
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
                     currentPlanId === plan.id
-                      ? 'bg-[#2f2f2f] text-white'
-                      : 'hover:bg-[#2f2f2f]'
+                      ? 'bg-[#eff6ff] text-[#3b82f6]'
+                      : 'text-[#4b5563] hover:bg-[#f3f4f6]'
                   }`}
                 >
-                  <FileText size={14} />
+                  <div className={`w-3 h-3 rounded border-2 ${
+                    currentPlanId === plan.id 
+                      ? 'border-[#3b82f6] bg-[#3b82f6]' 
+                      : 'border-[#d1d5db]'
+                  }`} />
                   <span className="truncate">{plan.title}</span>
                 </div>
               </Link>
@@ -67,14 +80,17 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
         </nav>
       </div>
 
-      {/* 하단 설정 */}
-      <div className="p-2 border-t border-[#2f2f2f]">
-        <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[#2f2f2f] text-sm transition-colors">
+      {/* 하단 메뉴 */}
+      <div className="p-3 border-t border-[#e8e8e8] space-y-1">
+        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
           <Settings size={16} />
-          <span>설정</span>
+          <span>관리자 전용 페이지</span>
+        </button>
+        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white bg-[#3b82f6] hover:bg-[#2563eb] transition-colors">
+          <LogOut size={16} />
+          <span>로그아웃</span>
         </button>
       </div>
     </aside>
   );
 }
-

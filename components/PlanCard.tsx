@@ -1,7 +1,7 @@
 'use client';
 
 import { Plan } from '@/types/plan';
-import { Calendar, DollarSign, Clock, ExternalLink } from 'lucide-react';
+import { Star, CheckCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface PlanCardProps {
@@ -10,83 +10,86 @@ interface PlanCardProps {
 
 export default function PlanCard({ plan }: PlanCardProps) {
   const totalCost = plan.sourceCost + plan.productionCost;
-  const formattedDate = new Date(plan.createdAt).toLocaleDateString('ko-KR');
+  
+  // 비용에 따른 별점 계산 (예시: 최대 3개)
+  const getStarRating = () => {
+    if (totalCost >= 100000) return 3;
+    if (totalCost >= 50000) return 2;
+    return 1;
+  };
+  
+  const starRating = getStarRating();
 
   return (
     <Link href={`/plan/${plan.id}`}>
-      <div className="bg-[#252525] rounded-lg p-4 hover:bg-[#2f2f2f] transition-all cursor-pointer border border-[#333] hover:border-[#444] group">
-        {/* 헤더 */}
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h3 className="text-white font-medium text-base group-hover:text-[#9b9a97] transition-colors">
-              {plan.title}
-            </h3>
-            <span className="text-xs text-[#6b6b6b]">
-              영상 {plan.videoNumber}번
-            </span>
-          </div>
-          <span className="px-2 py-0.5 bg-[#2f4f2f] text-[#4ade80] text-xs rounded">
-            진행중
+      <div className="card p-5 cursor-pointer group">
+        {/* 상단: 태그 + 아이콘 */}
+        <div className="flex items-start justify-between mb-4">
+          <span className="tag tag-blue">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
+            영상 {plan.videoNumber}번
           </span>
+          <div className="flex items-center gap-1">
+            <button className="icon-btn" onClick={(e) => e.preventDefault()}>
+              <Star size={18} />
+            </button>
+            <button className="icon-btn" onClick={(e) => e.preventDefault()}>
+              <CheckCircle size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* 정보 */}
-        <div className="space-y-2 text-sm text-[#9b9a97]">
-          <div className="flex items-center gap-2">
-            <DollarSign size={14} className="text-[#6b6b6b]" />
-            <span>
-              소스 {plan.sourceCost.toLocaleString()}원 / 제작{' '}
-              {plan.productionCost.toLocaleString()}원
-            </span>
-          </div>
-          {plan.videoLength && (
-            <div className="flex items-center gap-2">
-              <Clock size={14} className="text-[#6b6b6b]" />
-              <span>{plan.videoLength}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <Calendar size={14} className="text-[#6b6b6b]" />
-            <span>{formattedDate}</span>
-          </div>
-        </div>
+        {/* 제목 */}
+        <h3 className="text-lg font-semibold text-[#1a1a1a] mb-2 group-hover:text-[#3b82f6] transition-colors">
+          {plan.title}
+        </h3>
+
+        {/* 설명 */}
+        <p className="text-sm text-[#6b7280] mb-4 line-clamp-2">
+          {plan.referenceNote || '소스 비용 ' + plan.sourceCost.toLocaleString() + '원, 제작 비용 ' + plan.productionCost.toLocaleString() + '원의 기획안입니다.'}
+        </p>
 
         {/* 키워드 태그 */}
         {plan.keywords.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-3">
-            {plan.keywords.slice(0, 3).map((keyword, idx) => (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {plan.keywords.slice(0, 2).map((keyword, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 bg-[#1f1f1f] text-[#9b9a97] text-xs rounded"
+                className="px-2 py-0.5 bg-[#f3f4f6] text-[#4b5563] text-xs rounded-full"
               >
                 {keyword}
               </span>
             ))}
-            {plan.keywords.length > 3 && (
-              <span className="text-xs text-[#6b6b6b]">
-                +{plan.keywords.length - 3}
+            {plan.keywords.length > 2 && (
+              <span className="text-xs text-[#9ca3af]">
+                +{plan.keywords.length - 2}
               </span>
             )}
           </div>
         )}
 
-        {/* RF 링크 */}
-        {plan.rfLink && (
-          <div className="mt-3 pt-3 border-t border-[#333]">
-            <a
-              href={plan.rfLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-[#6b6b6b] hover:text-[#9b9a97] transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink size={12} />
-              RF 링크
-            </a>
+        {/* 하단: 별점 + 자세히 보기 */}
+        <div className="flex items-center justify-between pt-3 border-t border-[#f3f4f6]">
+          <div className="flex items-center gap-2">
+            <div className="stars">
+              {[1, 2, 3].map((i) => (
+                <Star
+                  key={i}
+                  size={14}
+                  className={i <= starRating ? 'star fill-current' : 'star-empty'}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-[#6b7280]">
+              비용: {totalCost >= 100000 ? '상' : totalCost >= 50000 ? '중' : '하'}
+            </span>
           </div>
-        )}
+          <span className="flex items-center gap-1 text-sm text-[#3b82f6] font-medium group-hover:gap-2 transition-all">
+            자세히 보기
+            <ArrowRight size={14} />
+          </span>
+        </div>
       </div>
     </Link>
   );
 }
-
