@@ -9,9 +9,9 @@ export const isSupabaseConfigured = () => {
   return !!supabaseUrl && !!supabaseAnonKey;
 };
 
-// DB 기능 사용 여부 (기획안 저장 등) - 로컬 저장소 사용
+// DB 기능 사용 여부 (기획안 저장 등)
 export const useSupabaseDB = () => {
-  return false; // Supabase 테이블 설정 전까지 로컬 저장소 사용
+  return true; // Supabase DB 사용
 };
 
 // Supabase 클라이언트 (설정된 경우에만 생성)
