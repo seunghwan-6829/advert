@@ -241,20 +241,20 @@ function PlanDetailContent() {
       {/* 저장 안됨 모달 */}
       {showUnsavedModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-xl bg-[#fef3c7]">
-                <AlertTriangle size={24} className="text-[#f59e0b]" />
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="p-3 rounded-xl bg-[#fef3c7] mb-4">
+                <AlertTriangle size={28} className="text-[#f59e0b]" />
               </div>
-              <h3 className="text-lg font-semibold text-[#1a1a1a]">저장되지 않음</h3>
+              <h3 className="text-xl font-semibold text-[#1a1a1a] mb-2">저장되지 않음</h3>
+              <p className="text-[#6b7280]">
+                변경사항이 저장되지 않았습니다.<br />저장하지 않고 나가시겠습니까?
+              </p>
             </div>
-            <p className="text-[#6b7280] mb-6">
-              변경사항이 저장되지 않았습니다. 저장하지 않고 나가시겠습니까?
-            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowUnsavedModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb] transition-colors"
+                className="flex-1 px-4 py-3 rounded-xl border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb] transition-colors font-medium"
               >
                 취소
               </button>
@@ -263,14 +263,14 @@ function PlanDetailContent() {
                   setShowUnsavedModal(false);
                   router.push(backUrl);
                 }}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-[#e5e7eb] text-[#ef4444] hover:bg-[#fef2f2] transition-colors"
+                className="flex-1 px-4 py-3 rounded-xl border border-[#e5e7eb] text-[#ef4444] hover:bg-[#fef2f2] transition-colors font-medium"
               >
-                그냥 나가기
+                나가기
               </button>
               <button
                 onClick={handleSaveAndExit}
                 disabled={saving}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#f97316] text-white hover:bg-[#ea580c] transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-3 rounded-xl bg-[#f97316] text-white hover:bg-[#ea580c] transition-colors disabled:opacity-50 font-medium"
               >
                 {saving ? '저장 중...' : '저장하기'}
               </button>
