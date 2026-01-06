@@ -55,12 +55,12 @@ export default function NewPlanPage() {
     }
 
     setSaving(true);
-    const newPlan = await createPlan({
+    await createPlan({
       ...formData,
       brandId: formData.brandId || undefined,
     });
     setSaving(false);
-    router.push(`/plan/${newPlan.id}`);
+    router.push('/');
   };
 
   const handleFieldChange = (field: string, value: unknown) => {

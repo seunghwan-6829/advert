@@ -126,12 +126,16 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
     <>
       <aside className="w-60 h-screen bg-white flex flex-col border-r border-[#f0e6dc] fixed left-0 top-0">
         {/* 로고 영역 */}
-        <div className="p-4 border-b border-[#f0e6dc]">
+        <div className="p-4 pb-2">
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold text-[#1a1a1a]">🎬 기획안 관리</span>
           </div>
+        </div>
+
+        {/* 홈 버튼 */}
+        <div className="px-4 pb-4 border-b border-[#f0e6dc]">
           <Link href="/">
-            <div className="flex items-center gap-2 mt-2 text-sm text-[#6b7280] hover:text-[#f97316] transition-colors cursor-pointer">
+            <div className="flex items-center gap-2 px-2 py-2 text-sm text-[#6b7280] hover:text-[#f97316] hover:bg-[#fff7ed] rounded-lg transition-colors cursor-pointer">
               <Home size={16} />
               <span>홈</span>
             </div>
@@ -208,20 +212,6 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
               </p>
             ) : (
               <>
-                {/* 전체 보기 버튼 */}
-                <button
-                  onClick={() => onSelectBrand && onSelectBrand(null)}
-                  className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors mb-1 ${
-                    !selectedBrandId
-                      ? 'bg-[#fff7ed] text-[#f97316] font-medium'
-                      : 'text-[#4b5563] hover:bg-[#fff7ed]'
-                  }`}
-                >
-                  <FileText size={16} />
-                  <span>전체 보기</span>
-                  <span className="text-xs text-[#9ca3af]">({plans.length})</span>
-                </button>
-
                 {/* 브랜드 목록 */}
                 {brands.map((brand) => {
                   const brandPlans = getPlansByBrand(brand.id);

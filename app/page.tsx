@@ -56,9 +56,10 @@ export default function Home() {
       />
 
       {/* 메인 콘텐츠 */}
-      <main className="flex-1 ml-60 p-8">
-        {/* 상단 통계 + 검색바 */}
-        <div className="flex items-center gap-4 mb-8">
+      <main className="flex-1 ml-60">
+        {/* 상단 통계 + 검색바 (고정) */}
+        <div className="sticky top-0 z-10 bg-[#f8f6f2] px-8 pt-8 pb-4">
+          <div className="flex items-center gap-4">
           {/* 통계 카드들 */}
           <div className="stat-card">
             <div className="stat-icon bg-[#fff7ed]">
@@ -124,8 +125,11 @@ export default function Home() {
               </button>
             </div>
           </div>
+          </div>
         </div>
 
+        {/* 컨텐츠 영역 */}
+        <div className="px-8 pb-8">
         {/* 툴바 */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -227,6 +231,7 @@ export default function Home() {
             ))}
           </div>
         )}
+        </div>
       </main>
     </div>
   );
