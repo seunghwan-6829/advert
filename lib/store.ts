@@ -279,18 +279,26 @@ export const createPlan = async (planData: Omit<Plan, 'id' | 'createdAt' | 'upda
   const newPlan: Plan = {
     ...planData,
     id: uuidv4(),
+    ctaText: planData.ctaText || '',
+    summary: planData.summary || '',
     createdAt: now,
     updatedAt: now,
   };
 
   if (useSupabaseDB() && supabase) {
-    const { error } = await supabase
-      .from('plans')
-      .insert(transformToSupabase(newPlan));
-    
-    if (error) {
-      console.error('Supabase error:', error);
-      // 폴백: 로컬에 저장
+    try {
+      const { error } = await supabase
+        .from('plans')
+        .insert(transformToSupabase(newPlan));
+      
+      if (error) {
+        console.error('Supabase insert error:', error);
+        // 폴백: 로컬에도 저장
+        const plans = getLocalPlans();
+        setLocalPlans([newPlan, ...plans]);
+      }
+    } catch (e) {
+      console.error('Supabase exception:', e);
       const plans = getLocalPlans();
       setLocalPlans([newPlan, ...plans]);
     }
