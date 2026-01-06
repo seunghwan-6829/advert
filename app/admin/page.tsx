@@ -25,17 +25,17 @@ export default function AdminPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!isLoading && !isAdmin) {
-      router.push('/');
-    }
-  }, [isAdmin, isLoading, router]);
+  // 임시: 로그인 없이도 관리자 페이지 접근 허용 (테스트용)
+  // useEffect(() => {
+  //   if (!isLoading && !isAdmin) {
+  //     router.push('/');
+  //   }
+  // }, [isAdmin, isLoading, router]);
 
   useEffect(() => {
-    if (isAdmin) {
-      loadData();
-    }
-  }, [isAdmin]);
+    // 임시: 항상 데이터 로드 (테스트용)
+    loadData();
+  }, []);
 
   const loadData = async () => {
     const [usersData, brandsData, visitsData, statsData, uniqueData] = await Promise.all([
@@ -117,9 +117,10 @@ export default function AdminPage() {
     );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
+  // 임시: 관리자 체크 비활성화 (테스트용)
+  // if (!isAdmin) {
+  //   return null;
+  // }
 
   const totalVisits = visits.length;
   const todayVisits = visits.filter(v => 
