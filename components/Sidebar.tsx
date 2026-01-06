@@ -140,9 +140,11 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
       <aside className="w-60 h-screen bg-white flex flex-col border-r border-[#f0e6dc] fixed left-0 top-0">
         {/* 로고 영역 */}
         <div className="p-4 pb-2">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-[#1a1a1a]">🎬 기획안 관리</span>
-          </div>
+          <img 
+            src="/logo.svg" 
+            alt="re:boot" 
+            className="h-7 w-auto"
+          />
         </div>
 
         {/* 홈 버튼 */}
