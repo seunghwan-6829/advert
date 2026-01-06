@@ -3,22 +3,24 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PlanSection } from '@/types/plan';
-import { createPlan, createEmptySection, getPlans } from '@/lib/store';
+import { createPlan, createEmptySection, getPlans, getBrands } from '@/lib/store';
 import Sidebar from '@/components/Sidebar';
 import SectionEditor from '@/components/SectionEditor';
-import { ArrowLeft, Save, Plus, Tag, X, FileText, DollarSign, Link2, Clock, StickyNote, Layers } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Tag, X, FileText, DollarSign, Link2, Clock, StickyNote, Layers, FolderKanban } from 'lucide-react';
 import Link from 'next/link';
-import { Plan } from '@/types/plan';
+import { Plan, Brand } from '@/types/plan';
 
 export default function NewPlanPage() {
   const router = useRouter();
   const [allPlans, setAllPlans] = useState<Plan[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [saving, setSaving] = useState(false);
   const [newKeyword, setNewKeyword] = useState('');
 
   // 폼 상태
   const [formData, setFormData] = useState({
     title: '',
+    brandId: '' as string | undefined,
     videoNumber: 1,
     sourceCost: 0,
     productionCost: 0,
@@ -30,16 +32,20 @@ export default function NewPlanPage() {
   });
 
   useEffect(() => {
-    const loadPlans = async () => {
-      const plans = await getPlans();
+    const loadData = async () => {
+      const [plans, brandsData] = await Promise.all([
+        getPlans(),
+        getBrands(),
+      ]);
       setAllPlans(plans);
+      setBrands(brandsData);
       // 자동으로 다음 영상 번호 설정
       if (plans.length > 0) {
         const maxVideoNumber = Math.max(...plans.map((p) => p.videoNumber));
         setFormData((prev) => ({ ...prev, videoNumber: maxVideoNumber + 1 }));
       }
     };
-    loadPlans();
+    loadData();
   }, []);
 
   const handleSave = async () => {
@@ -49,7 +55,10 @@ export default function NewPlanPage() {
     }
 
     setSaving(true);
-    const newPlan = await createPlan(formData);
+    const newPlan = await createPlan({
+      ...formData,
+      brandId: formData.brandId || undefined,
+    });
     setSaving(false);
     router.push(`/plan/${newPlan.id}`);
   };
@@ -96,14 +105,14 @@ export default function NewPlanPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8f6f2]">
+    <div className="flex min-h-screen">
       <Sidebar plans={allPlans} />
 
       <main className="flex-1 ml-60 p-8 lg:p-10">
         {/* 상단 네비게이션 */}
         <div className="flex items-center justify-between mb-8 animate-fade-in-up">
           <Link href="/">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-[#6b7280] hover:text-[#1a1a1a] hover:bg-white transition-all">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-[#6b7280] hover:text-[#f97316] hover:bg-[#fff7ed] transition-all">
               <ArrowLeft size={18} />
               <span className="font-medium">목록으로</span>
             </button>
@@ -129,19 +138,36 @@ export default function NewPlanPage() {
             placeholder="✨ 기획안 제목을 입력하세요"
             autoFocus
           />
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#dbeafe] border border-[#bfdbfe]">
-              <FileText size={16} className="text-[#3b82f6]" />
-              <span className="text-sm text-[#1e40af]">영상</span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#fff7ed] border border-[#fed7aa]">
+              <FileText size={16} className="text-[#f97316]" />
+              <span className="text-sm text-[#c2410c]">영상</span>
               <input
                 type="number"
                 value={formData.videoNumber}
                 onChange={(e) =>
                   handleFieldChange('videoNumber', parseInt(e.target.value) || 1)
                 }
-                className="w-14 bg-transparent text-[#1e40af] font-semibold text-center border-b border-[#3b82f6]/30 focus:border-[#3b82f6]"
+                className="w-14 bg-transparent text-[#c2410c] font-semibold text-center border-b border-[#f97316]/30 focus:border-[#f97316]"
               />
-              <span className="text-sm text-[#1e40af]">번</span>
+              <span className="text-sm text-[#c2410c]">번</span>
+            </div>
+
+            {/* 프로젝트 선택 */}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#f0e6dc]">
+              <FolderKanban size={16} className="text-[#f97316]" />
+              <select
+                value={formData.brandId || ''}
+                onChange={(e) => handleFieldChange('brandId', e.target.value || undefined)}
+                className="bg-transparent text-sm text-[#4b5563] cursor-pointer"
+              >
+                <option value="">프로젝트 선택</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -149,8 +175,8 @@ export default function NewPlanPage() {
         {/* 기본 정보 */}
         <div className="glass-card mb-8 animate-fade-in-up stagger-2">
           <h2 className="flex items-center gap-3 text-xl font-semibold text-[#1a1a1a] mb-6">
-            <div className="p-2 rounded-lg bg-[#dbeafe]">
-              <Layers size={20} className="text-[#3b82f6]" />
+            <div className="p-2 rounded-lg bg-[#fff7ed]">
+              <Layers size={20} className="text-[#f97316]" />
             </div>
             기본 정보
           </h2>
@@ -180,7 +206,7 @@ export default function NewPlanPage() {
             {/* 제작 비용 */}
             <div className="space-y-2">
               <label className="field-label">
-                <DollarSign size={14} className="text-[#3b82f6]" />
+                <DollarSign size={14} className="text-[#f97316]" />
                 제작 비용
               </label>
               <div className="flex items-center">
@@ -195,7 +221,7 @@ export default function NewPlanPage() {
                   }
                   className="input-field flex-1 rounded-r-none border-r-0"
                 />
-                <span className="px-4 py-3 bg-[#dbeafe] border border-[#bfdbfe] rounded-r-lg text-[#1d4ed8] font-medium text-sm">
+                <span className="px-4 py-3 bg-[#fff7ed] border border-[#fed7aa] rounded-r-lg text-[#c2410c] font-medium text-sm">
                   원
                 </span>
               </div>
@@ -250,7 +276,7 @@ export default function NewPlanPage() {
             {/* 키워드 */}
             <div className="md:col-span-2 lg:col-span-3 space-y-3">
               <label className="field-label">
-                <Tag size={14} className="text-[#3b82f6]" />
+                <Tag size={14} className="text-[#f97316]" />
                 들어가야 하는 키워드
               </label>
               
@@ -298,11 +324,11 @@ export default function NewPlanPage() {
         <div className="mb-8 animate-fade-in-up stagger-3">
           <div className="flex items-center justify-between mb-6">
             <h2 className="flex items-center gap-3 text-xl font-semibold text-[#1a1a1a]">
-              <div className="p-2 rounded-lg bg-[#f3e8ff]">
+              <div className="p-2 rounded-lg bg-[#faf5ff]">
                 <FileText size={20} className="text-[#8b5cf6]" />
               </div>
               섹션
-              <span className="ml-2 px-3 py-1 rounded-full bg-[#f3f4f6] text-sm text-[#6b7280]">
+              <span className="ml-2 px-3 py-1 rounded-full bg-[#fff7ed] text-sm text-[#c2410c]">
                 {formData.sections.length}
               </span>
             </h2>
@@ -328,9 +354,9 @@ export default function NewPlanPage() {
           </div>
 
           {formData.sections.length === 0 && (
-            <div className="text-center py-16 border-2 border-dashed border-[#e5e7eb] rounded-2xl bg-white">
-              <div className="inline-flex p-4 rounded-2xl bg-[#f3f4f6] mb-4">
-                <Layers size={32} className="text-[#9ca3af]" />
+            <div className="text-center py-16 border-2 border-dashed border-[#f0e6dc] rounded-2xl bg-white">
+              <div className="inline-flex p-4 rounded-2xl bg-[#fff7ed] mb-4">
+                <Layers size={32} className="text-[#f97316]" />
               </div>
               <p className="text-[#9ca3af] mb-4">아직 섹션이 없습니다</p>
               <button

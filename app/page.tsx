@@ -38,7 +38,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8f6f2]">
+    <div className="flex min-h-screen">
       {/* 사이드바 */}
       <Sidebar plans={plans} />
 
@@ -48,8 +48,8 @@ export default function Home() {
         <div className="flex items-center gap-4 mb-8">
           {/* 통계 카드들 */}
           <div className="stat-card">
-            <div className="stat-icon bg-[#dbeafe]">
-              <FileText size={18} className="text-[#3b82f6]" />
+            <div className="stat-icon bg-[#fff7ed]">
+              <FileText size={18} className="text-[#f97316]" />
             </div>
             <div>
               <div className="text-xl font-bold text-[#1a1a1a]">{stats.total}</div>
@@ -73,17 +73,17 @@ export default function Home() {
             </div>
             <div>
               <div className="text-xl font-bold text-[#1a1a1a]">{stats.completed}</div>
-              <div className="text-xs text-[#6b7280]">학습완료</div>
+              <div className="text-xs text-[#6b7280]">완료</div>
             </div>
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon bg-[#f3e8ff]">
-              <TrendingUp size={18} className="text-[#8b5cf6]" />
+            <div className="stat-icon bg-[#ffedd5]">
+              <TrendingUp size={18} className="text-[#ea580c]" />
             </div>
             <div>
               <div className="text-xl font-bold text-[#1a1a1a]">{stats.progress}%</div>
-              <div className="text-xs text-[#6b7280]">학습 진도</div>
+              <div className="text-xs text-[#6b7280]">진행률</div>
             </div>
           </div>
 
@@ -124,13 +124,13 @@ export default function Home() {
 
           <div className="flex items-center gap-3">
             {/* 뷰 모드 토글 */}
-            <div className="flex items-center bg-white rounded-lg p-1 border border-[#e8e8e8]">
+            <div className="flex items-center bg-white rounded-lg p-1 border border-[#f0e6dc]">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded-md ${
                   viewMode === 'grid'
-                    ? 'bg-[#3b82f6] text-white'
-                    : 'text-[#6b7280] hover:text-[#1a1a1a]'
+                    ? 'bg-[#f97316] text-white'
+                    : 'text-[#6b7280] hover:text-[#f97316]'
                 }`}
               >
                 <LayoutGrid size={16} />
@@ -139,8 +139,8 @@ export default function Home() {
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded-md ${
                   viewMode === 'list'
-                    ? 'bg-[#3b82f6] text-white'
-                    : 'text-[#6b7280] hover:text-[#1a1a1a]'
+                    ? 'bg-[#f97316] text-white'
+                    : 'text-[#6b7280] hover:text-[#f97316]'
                 }`}
               >
                 <List size={16} />
@@ -164,8 +164,8 @@ export default function Home() {
           </div>
         ) : filteredPlans.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 border border-[#e8e8e8]">
-              <Plus size={32} className="text-[#9ca3af]" />
+            <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 border border-[#f0e6dc]">
+              <Plus size={32} className="text-[#f97316]" />
             </div>
             <h3 className="text-lg font-medium text-[#1a1a1a] mb-2">
               {searchQuery ? '검색 결과가 없습니다' : '아직 기획안이 없습니다'}
@@ -194,11 +194,11 @@ export default function Home() {
             {filteredPlans.map((plan, index) => (
               <Link key={plan.id} href={`/plan/${plan.id}`}>
                 <div 
-                  className="flex items-center justify-between p-4 bg-white rounded-xl hover:shadow-md transition-all cursor-pointer border border-[#e8e8e8] animate-fade-in-up"
+                  className="flex items-center justify-between p-4 bg-white rounded-xl hover:shadow-md transition-all cursor-pointer border border-[#f0e6dc] hover:border-[#fed7aa] animate-fade-in-up"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div className="flex items-center gap-4">
-                    <span className="tag tag-blue">영상 {plan.videoNumber}번</span>
+                    <span className="tag tag-orange">영상 {plan.videoNumber}번</span>
                     <span className="text-[#1a1a1a] font-medium">{plan.title}</span>
                   </div>
                   <div className="flex items-center gap-6 text-sm text-[#6b7280]">

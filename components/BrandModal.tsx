@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Brand } from '@/types/plan';
-import { X, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
 
 interface BrandModalProps {
   isOpen: boolean;
@@ -71,7 +71,7 @@ export default function BrandModal({ isOpen, onClose, onSave, brand, mode }: Bra
           </h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-[#f3f4f6] text-[#9ca3af] hover:text-[#6b7280] transition-colors"
+            className="p-1 rounded-lg hover:bg-[#fff7ed] text-[#9ca3af] hover:text-[#f97316] transition-colors"
           >
             <X size={20} />
           </button>
@@ -80,13 +80,13 @@ export default function BrandModal({ isOpen, onClose, onSave, brand, mode }: Bra
         {/* 로고 업로드 */}
         <div className="mb-5">
           <label className="field-label">
-            <ImageIcon size={14} className="text-[#8b5cf6]" />
+            <ImageIcon size={14} className="text-[#f97316]" />
             프로젝트 로고 (선택)
           </label>
           
           <div className="flex items-center gap-4">
             {logo ? (
-              <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#e8e8e8]">
+              <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#f0e6dc]">
                 <img src={logo} alt="로고" className="w-full h-full object-cover" />
                 <button
                   onClick={handleRemoveLogo}
@@ -98,9 +98,9 @@ export default function BrandModal({ isOpen, onClose, onSave, brand, mode }: Bra
             ) : (
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="w-16 h-16 rounded-xl border-2 border-dashed border-[#e5e7eb] flex items-center justify-center cursor-pointer hover:border-[#3b82f6] hover:bg-[#f0f9ff] transition-all"
+                className="w-16 h-16 rounded-xl border-2 border-dashed border-[#fed7aa] flex items-center justify-center cursor-pointer hover:border-[#f97316] hover:bg-[#fff7ed] transition-all"
               >
-                <Upload size={20} className="text-[#9ca3af]" />
+                <Upload size={20} className="text-[#f97316]" />
               </div>
             )}
             
@@ -159,4 +159,3 @@ export default function BrandModal({ isOpen, onClose, onSave, brand, mode }: Bra
     </div>
   );
 }
-

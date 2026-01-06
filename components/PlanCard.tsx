@@ -25,8 +25,8 @@ export default function PlanCard({ plan }: PlanCardProps) {
       <div className="card p-5 cursor-pointer group">
         {/* 상단: 태그 + 아이콘 */}
         <div className="flex items-start justify-between mb-4">
-          <span className="tag tag-blue">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />
+          <span className="tag tag-orange">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#f97316]" />
             영상 {plan.videoNumber}번
           </span>
           <div className="flex items-center gap-1">
@@ -40,7 +40,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
         </div>
 
         {/* 제목 */}
-        <h3 className="text-lg font-semibold text-[#1a1a1a] mb-2 group-hover:text-[#3b82f6] transition-colors">
+        <h3 className="text-lg font-semibold text-[#1a1a1a] mb-2 group-hover:text-[#f97316] transition-colors">
           {plan.title}
         </h3>
 
@@ -55,7 +55,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
             {plan.keywords.slice(0, 2).map((keyword, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 bg-[#f3f4f6] text-[#4b5563] text-xs rounded-full"
+                className="px-2 py-0.5 bg-[#fff7ed] text-[#c2410c] text-xs rounded-full border border-[#fed7aa]"
               >
                 {keyword}
               </span>
@@ -69,7 +69,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
         )}
 
         {/* 하단: 별점 + 자세히 보기 */}
-        <div className="flex items-center justify-between pt-3 border-t border-[#f3f4f6]">
+        <div className="flex items-center justify-between pt-3 border-t border-[#f0e6dc]">
           <div className="flex items-center gap-2">
             <div className="stars">
               {[1, 2, 3].map((i) => (
@@ -84,7 +84,7 @@ export default function PlanCard({ plan }: PlanCardProps) {
               비용: {totalCost >= 100000 ? '상' : totalCost >= 50000 ? '중' : '하'}
             </span>
           </div>
-          <span className="flex items-center gap-1 text-sm text-[#3b82f6] font-medium group-hover:gap-2 transition-all">
+          <span className="flex items-center gap-1 text-sm text-[#f97316] font-medium group-hover:gap-2 transition-all">
             자세히 보기
             <ArrowRight size={14} />
           </span>

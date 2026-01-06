@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, FileText, Settings, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, FileText, Settings, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash2, ChevronDown, ChevronRight, User, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { Plan, Brand } from '@/types/plan';
-import { useAdmin } from '@/lib/AdminContext';
-import { getBrands, createBrand, updateBrand, deleteBrand, reorderBrands, getPlansByBrandId } from '@/lib/store';
+import { useAuth } from '@/lib/AuthContext';
+import { getBrands, createBrand, updateBrand, deleteBrand } from '@/lib/store';
 import AccessDeniedModal from './AccessDeniedModal';
 import BrandModal from './BrandModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
+import AuthModal from './AuthModal';
 
 interface SidebarProps {
   plans: Plan[];
@@ -16,7 +17,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
-  const { isAdmin, toggleAdmin } = useAdmin();
+  const { user, isAdmin, signOut, isLoading } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [expandedBrands, setExpandedBrands] = useState<Set<string>>(new Set());
   const [isManageMode, setIsManageMode] = useState(false);
@@ -25,6 +26,8 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
   const [showAccessDenied, setShowAccessDenied] = useState(false);
   const [showBrandModal, setShowBrandModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [deletingBrand, setDeletingBrand] = useState<Brand | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -104,6 +107,18 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
     }
   };
 
+  // 로그아웃
+  const handleLogout = async () => {
+    await signOut();
+    setIsManageMode(false);
+  };
+
+  // 로그인/회원가입 모달 열기
+  const openAuthModal = (mode: 'login' | 'signup') => {
+    setAuthModalMode(mode);
+    setShowAuthModal(true);
+  };
+
   // 브랜드에 속하지 않은 기획안들
   const unassignedPlans = plans.filter(p => !p.brandId);
 
@@ -114,28 +129,59 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
 
   return (
     <>
-      <aside className="w-60 h-screen bg-white flex flex-col border-r border-[#e8e8e8] fixed left-0 top-0">
+      <aside className="w-60 h-screen bg-white flex flex-col border-r border-[#f0e6dc] fixed left-0 top-0">
         {/* 로고 영역 */}
-        <div className="p-4 border-b border-[#e8e8e8]">
+        <div className="p-4 border-b border-[#f0e6dc]">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-[#1a1a1a]">여기에 로고 넣기</span>
+            <span className="text-lg font-bold text-[#1a1a1a]">🎬 기획안 관리</span>
           </div>
           <Link href="/">
-            <div className="flex items-center gap-2 mt-2 text-sm text-[#6b7280] hover:text-[#1a1a1a] transition-colors cursor-pointer">
+            <div className="flex items-center gap-2 mt-2 text-sm text-[#6b7280] hover:text-[#f97316] transition-colors cursor-pointer">
               <Home size={16} />
-              <span>(홈 아이콘) 홈</span>
+              <span>홈</span>
             </div>
           </Link>
         </div>
 
-        {/* 회원가입/로그인 버튼 */}
-        <div className="p-3 flex gap-2">
-          <button className="flex-1 py-2 px-3 bg-[#3b82f6] text-white text-sm font-medium rounded-lg hover:bg-[#2563eb] transition-colors">
-            회원가입
-          </button>
-          <button className="flex-1 py-2 px-3 bg-white border border-[#e8e8e8] text-[#1a1a1a] text-sm font-medium rounded-lg hover:bg-[#f3f4f6] transition-colors">
-            로그인
-          </button>
+        {/* 회원가입/로그인 또는 사용자 정보 */}
+        <div className="p-3 border-b border-[#f0e6dc]">
+          {isLoading ? (
+            <div className="text-sm text-[#9ca3af] text-center py-2">로딩 중...</div>
+          ) : user ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-2 py-2 bg-[#fff7ed] rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-[#f97316] flex items-center justify-center">
+                  <User size={16} className="text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#1a1a1a] truncate">
+                    {user.email?.split('@')[0]}
+                  </p>
+                  {isAdmin && (
+                    <p className="text-xs text-[#f97316] flex items-center gap-1">
+                      <Shield size={10} />
+                      관리자
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button 
+                onClick={() => openAuthModal('signup')}
+                className="flex-1 py-2 px-3 bg-[#f97316] text-white text-sm font-medium rounded-lg hover:bg-[#ea580c] transition-colors"
+              >
+                회원가입
+              </button>
+              <button 
+                onClick={() => openAuthModal('login')}
+                className="flex-1 py-2 px-3 bg-white border border-[#f0e6dc] text-[#1a1a1a] text-sm font-medium rounded-lg hover:bg-[#fff7ed] transition-colors"
+              >
+                로그인
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 프로젝트 관리 */}
@@ -145,8 +191,8 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
               onClick={handleManageClick}
               className={`text-sm font-medium flex items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
                 isManageMode 
-                  ? 'text-[#3b82f6] bg-[#eff6ff]' 
-                  : 'text-[#1a1a1a] hover:bg-[#f3f4f6]'
+                  ? 'text-[#f97316] bg-[#fff7ed]' 
+                  : 'text-[#1a1a1a] hover:bg-[#fff7ed]'
               }`}
             >
               <FolderKanban size={16} />
@@ -154,7 +200,7 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
             </button>
             <button 
               onClick={handleAddClick}
-              className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#f3f4f6] text-[#6b7280] hover:text-[#1a1a1a] transition-colors"
+              className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#fff7ed] text-[#6b7280] hover:text-[#f97316] transition-colors"
             >
               <Plus size={16} />
             </button>
@@ -187,10 +233,10 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
                         
                         <button
                           onClick={() => toggleBrand(brand.id)}
-                          className="flex-1 flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[#4b5563] hover:bg-[#f3f4f6] transition-colors"
+                          className="flex-1 flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-[#4b5563] hover:bg-[#fff7ed] transition-colors"
                         >
                           {isExpanded ? (
-                            <ChevronDown size={14} className="text-[#9ca3af]" />
+                            <ChevronDown size={14} className="text-[#f97316]" />
                           ) : (
                             <ChevronRight size={14} className="text-[#9ca3af]" />
                           )}
@@ -198,7 +244,7 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
                           {brand.logo ? (
                             <img src={brand.logo} alt="" className="w-5 h-5 rounded object-cover" />
                           ) : (
-                            <div className="w-5 h-5 rounded bg-[#e5e7eb] flex items-center justify-center text-xs text-[#6b7280]">
+                            <div className="w-5 h-5 rounded bg-[#fed7aa] flex items-center justify-center text-xs text-[#c2410c] font-medium">
                               {brand.name.charAt(0)}
                             </div>
                           )}
@@ -211,7 +257,7 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
                           <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleEditBrand(brand)}
-                              className="p-1 rounded hover:bg-[#f3f4f6] text-[#9ca3af] hover:text-[#3b82f6]"
+                              className="p-1 rounded hover:bg-[#fff7ed] text-[#9ca3af] hover:text-[#f97316]"
                             >
                               <Pencil size={14} />
                             </button>
@@ -236,8 +282,8 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
                                 <div
                                   className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
                                     currentPlanId === plan.id
-                                      ? 'bg-[#eff6ff] text-[#3b82f6]'
-                                      : 'text-[#6b7280] hover:bg-[#f3f4f6]'
+                                      ? 'bg-[#fff7ed] text-[#f97316]'
+                                      : 'text-[#6b7280] hover:bg-[#fff7ed]'
                                   }`}
                                 >
                                   <FileText size={14} />
@@ -254,15 +300,15 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
 
                 {/* 미분류 기획안 */}
                 {unassignedPlans.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-[#e8e8e8]">
+                  <div className="mt-3 pt-3 border-t border-[#f0e6dc]">
                     <p className="text-xs text-[#9ca3af] px-2 mb-2">미분류</p>
                     {unassignedPlans.map((plan) => (
                       <Link key={plan.id} href={`/plan/${plan.id}`}>
                         <div
                           className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
                             currentPlanId === plan.id
-                              ? 'bg-[#eff6ff] text-[#3b82f6]'
-                              : 'text-[#6b7280] hover:bg-[#f3f4f6]'
+                              ? 'bg-[#fff7ed] text-[#f97316]'
+                              : 'text-[#6b7280] hover:bg-[#fff7ed]'
                           }`}
                         >
                           <FileText size={14} />
@@ -278,23 +324,33 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
         </div>
 
         {/* 하단 메뉴 */}
-        <div className="p-3 border-t border-[#e8e8e8] space-y-1">
-          {/* 관리자 모드 토글 (임시) */}
-          <button 
-            onClick={toggleAdmin}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isAdmin 
-                ? 'bg-[#dcfce7] text-[#15803d]' 
-                : 'text-[#4b5563] hover:bg-[#f3f4f6]'
-            }`}
-          >
-            <Settings size={16} />
-            <span>{isAdmin ? '관리자 모드 ON' : '관리자 전용 페이지'}</span>
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white bg-[#3b82f6] hover:bg-[#2563eb] transition-colors">
-            <LogOut size={16} />
-            <span>로그아웃</span>
-          </button>
+        <div className="p-3 border-t border-[#f0e6dc] space-y-1">
+          {user && isAdmin && (
+            <div className="px-3 py-2 mb-1 bg-[#f0fdf4] rounded-lg">
+              <p className="text-xs text-[#15803d] flex items-center gap-1">
+                <Shield size={12} />
+                관리자 모드 활성화
+              </p>
+            </div>
+          )}
+          
+          {user ? (
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white bg-[#f97316] hover:bg-[#ea580c] transition-colors"
+            >
+              <LogOut size={16} />
+              <span>로그아웃</span>
+            </button>
+          ) : (
+            <button 
+              onClick={() => openAuthModal('login')}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white bg-[#f97316] hover:bg-[#ea580c] transition-colors"
+            >
+              <User size={16} />
+              <span>로그인하기</span>
+            </button>
+          )}
         </div>
       </aside>
 
@@ -325,6 +381,12 @@ export default function Sidebar({ plans, currentPlanId }: SidebarProps) {
         title="프로젝트 삭제"
         message={`"${deletingBrand?.name}" 프로젝트를 정말 삭제하시겠습니까? 이 프로젝트에 포함된 기획안들은 미분류로 이동됩니다.`}
         isLoading={isDeleting}
+      />
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        defaultMode={authModalMode}
       />
     </>
   );

@@ -27,7 +27,7 @@ export default function SectionEditor({
 
   // 섹션 타입에 따른 태그 색상
   const getTagClass = (type: string) => {
-    if (type.includes('CTA')) return 'tag-yellow';
+    if (type.includes('CTA')) return 'tag-orange';
     if (type.includes('본문')) return 'tag-blue';
     return 'tag-purple';
   };
@@ -37,8 +37,8 @@ export default function SectionEditor({
       {/* 섹션 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-[#f3f4f6] cursor-grab hover:bg-[#e5e7eb] transition-colors">
-            <GripVertical size={18} className="text-[#9ca3af]" />
+          <div className="p-2 rounded-lg bg-[#fff7ed] cursor-grab hover:bg-[#ffedd5] transition-colors">
+            <GripVertical size={18} className="text-[#f97316]" />
           </div>
           <div className="relative">
             <select
@@ -68,7 +68,7 @@ export default function SectionEditor({
         {/* 영상 설명 */}
         <div className="space-y-2">
           <label className="field-label">
-            <Film size={14} className="text-[#3b82f6]" />
+            <Film size={14} className="text-[#f97316]" />
             영상
           </label>
           <textarea
