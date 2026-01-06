@@ -24,26 +24,28 @@ export default function Home() {
     loadPlans();
   }, []);
 
-  // 브랜드 + 검색 필터링
-  const filteredPlans = plans.filter(plan => {
-    // 브랜드 필터
-    if (selectedBrandId && plan.brandId !== selectedBrandId) {
-      return false;
-    }
-    // 검색 필터
-    if (searchQuery) {
-      return plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        plan.keywords.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()));
-    }
-    return true;
-  });
+  // 브랜드 + 검색 필터링 (프로젝트 선택해야만 기획안 표시)
+  const filteredPlans = selectedBrandId 
+    ? plans.filter(plan => {
+        // 선택된 프로젝트의 기획안만 표시
+        if (plan.brandId !== selectedBrandId) {
+          return false;
+        }
+        // 검색 필터
+        if (searchQuery) {
+          return plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            plan.keywords.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
+        return true;
+      })
+    : []; // 프로젝트 미선택 시 빈 배열
 
-  // 통계 계산
+  // 통계 계산 (선택된 프로젝트 기준)
   const stats = {
-    total: plans.length,
+    total: filteredPlans.length,
     favorites: 0, // 추후 구현
     completed: 0, // 추후 구현
-    progress: plans.length > 0 ? Math.round((0 / plans.length) * 100) : 0,
+    progress: filteredPlans.length > 0 ? Math.round((0 / filteredPlans.length) * 100) : 0,
   };
 
   return (
@@ -58,7 +60,7 @@ export default function Home() {
       {/* 메인 콘텐츠 */}
       <main className="flex-1 ml-60">
         {/* 상단 통계 + 검색바 (고정) */}
-        <div className="sticky top-0 z-10 bg-[#f8f6f2] px-8 pt-8 pb-4">
+        <div className="sticky top-0 z-10 bg-[#f8f6f2] px-8 py-5">
           <div className="flex items-center gap-4">
           {/* 통계 카드들 */}
           <div className="stat-card">
@@ -179,6 +181,18 @@ export default function Home() {
           <div className="flex items-center justify-center h-64">
             <div className="text-[#6b7280]">불러오는 중...</div>
           </div>
+        ) : !selectedBrandId ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 border border-[#f0e6dc]">
+              <FileText size={32} className="text-[#9ca3af]" />
+            </div>
+            <h3 className="text-lg font-medium text-[#1a1a1a] mb-2">
+              프로젝트를 선택해주세요
+            </h3>
+            <p className="text-[#6b7280]">
+              왼쪽 사이드바에서 프로젝트를 선택하면 기획안을 볼 수 있습니다
+            </p>
+          </div>
         ) : filteredPlans.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
             <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-4 border border-[#f0e6dc]">
@@ -188,7 +202,7 @@ export default function Home() {
               {searchQuery ? '검색 결과가 없습니다' : '아직 기획안이 없습니다'}
             </h3>
             <p className="text-[#6b7280] mb-4">
-              {searchQuery ? '다른 검색어를 시도해보세요' : '첫 번째 기획안을 만들어보세요!'}
+              {searchQuery ? '다른 검색어를 시도해보세요' : '이 프로젝트에 첫 번째 기획안을 만들어보세요!'}
             </p>
             {!searchQuery && (
               <Link href="/plan/new">
