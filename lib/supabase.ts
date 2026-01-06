@@ -5,8 +5,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // Supabase가 설정되었는지 확인
+// 현재는 로컬 저장소만 사용 (Supabase 테이블 설정 전까지)
 export const isSupabaseConfigured = () => {
-  return !!supabaseUrl && !!supabaseAnonKey;
+  return false; // 로컬 저장소 사용
+  // return !!supabaseUrl && !!supabaseAnonKey;
 };
 
 // Supabase 클라이언트 (설정된 경우에만 생성)
