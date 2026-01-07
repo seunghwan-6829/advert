@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 
@@ -27,6 +28,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
