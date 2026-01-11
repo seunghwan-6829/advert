@@ -3,32 +3,27 @@
 import { Plan } from '@/types/plan';
 import { FileText, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
-import { updatePlan } from '@/lib/store';
-import { useState } from 'react';
 
 interface PlanCardProps {
   plan: Plan;
-  onUpdate?: () => void;
+  pendingCompleted?: boolean; // 저장되지 않은 완료 상태
+  onCompletionChange?: (planId: string, isCompleted: boolean) => void;
 }
 
-export default function PlanCard({ plan, onUpdate }: PlanCardProps) {
+export default function PlanCard({ plan, pendingCompleted, onCompletionChange }: PlanCardProps) {
   // 스토리보드 첫 번째 장면 가져오기
   const firstScene = plan.storyboard?.[0];
   const sceneCount = plan.storyboard?.length || 0;
-  const [isCompleted, setIsCompleted] = useState(plan.isCompleted || false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  
+  // pendingCompleted가 있으면 그 값 사용, 없으면 plan.isCompleted
+  const isCompleted = pendingCompleted !== undefined ? pendingCompleted : (plan.isCompleted || false);
 
-  const handleToggleComplete = async (e: React.MouseEvent) => {
+  const handleToggleComplete = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    setIsUpdating(true);
     const newStatus = !isCompleted;
-    setIsCompleted(newStatus);
-    
-    await updatePlan(plan.id, { isCompleted: newStatus });
-    onUpdate?.();
-    setIsUpdating(false);
+    onCompletionChange?.(plan.id, newStatus);
   };
 
   return (
@@ -48,7 +43,6 @@ export default function PlanCard({ plan, onUpdate }: PlanCardProps) {
             {/* 제작 완료 버튼 */}
             <button
               onClick={handleToggleComplete}
-              disabled={isUpdating}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                 isCompleted
                   ? 'bg-[#22c55e] text-white hover:bg-[#16a34a]'

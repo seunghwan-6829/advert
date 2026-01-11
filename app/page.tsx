@@ -7,7 +7,8 @@ import { getPlans } from '@/lib/store';
 import { useAuth } from '@/lib/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import PlanCard from '@/components/PlanCard';
-import { FileText, Search, Plus, LayoutGrid, List, Lock } from 'lucide-react';
+import { FileText, Search, Plus, LayoutGrid, List, Lock, Save, AlertTriangle } from 'lucide-react';
+import { updatePlan } from '@/lib/store';
 import Link from 'next/link';
 
 // 스켈레톤 카드 컴포넌트
@@ -31,6 +32,11 @@ function HomeContent() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  
+  // 저장되지 않은 완료 상태 변경 추적
+  const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
+  const [showUnsavedToast, setShowUnsavedToast] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // 권한 체크
   const canViewProjects = isAdmin || permissions?.canViewProjects;
@@ -74,10 +80,35 @@ function HomeContent() {
     total: filteredPlans.length,
   };
 
-  // 기획안 상태 변경 시 목록 새로고침
-  const refreshPlans = async () => {
+  // 저장되지 않은 변경사항 개수
+  const unsavedCount = Object.keys(pendingChanges).length;
+
+  // 완료 상태 변경 (저장 안 함, 로컬만)
+  const handleCompletionChange = (planId: string, isCompleted: boolean) => {
+    setPendingChanges(prev => ({ ...prev, [planId]: isCompleted }));
+  };
+
+  // 변경사항 저장
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    for (const [planId, isCompleted] of Object.entries(pendingChanges)) {
+      await updatePlan(planId, { isCompleted });
+    }
+    // 저장 후 목록 새로고침
     const data = await getPlans();
     setPlans(data);
+    setPendingChanges({});
+    setIsSaving(false);
+  };
+
+  // 프로젝트 변경 시 저장되지 않은 변경 체크
+  const handleSelectBrandWithCheck = (brandId: string | null) => {
+    if (unsavedCount > 0) {
+      setShowUnsavedToast(true);
+      setTimeout(() => setShowUnsavedToast(false), 3000);
+      return;
+    }
+    handleSelectBrand(brandId);
   };
 
   // 브랜드 선택 시 URL 업데이트
@@ -96,7 +127,7 @@ function HomeContent() {
       <Sidebar 
         plans={plans} 
         selectedBrandId={selectedBrandId}
-        onSelectBrand={handleSelectBrand}
+        onSelectBrand={handleSelectBrandWithCheck}
       />
 
       {/* 메인 콘텐츠 */}
@@ -203,6 +234,18 @@ function HomeContent() {
                     </button>
                   </div>
 
+                  {/* 저장 버튼 (변경사항 있을 때만) */}
+                  {unsavedCount > 0 && (
+                    <button 
+                      onClick={handleSaveChanges}
+                      disabled={isSaving}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#22c55e] text-white text-sm font-medium rounded-lg hover:bg-[#16a34a] transition-colors disabled:opacity-50"
+                    >
+                      <Save size={16} />
+                      {isSaving ? '저장 중...' : `저장 (${unsavedCount}개)`}
+                    </button>
+                  )}
+
                   {/* 새 기획안 버튼 (권한 있고 프로젝트 선택 시에만) */}
                   {selectedBrandId && canCreatePlans && (
                     <Link href={`/plan/new?brand=${selectedBrandId}`}>
@@ -228,7 +271,11 @@ function HomeContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {filteredPlans.map((plan, index) => (
                     <div key={plan.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.03}s` }}>
-                      <PlanCard plan={plan} onUpdate={refreshPlans} />
+                      <PlanCard 
+                        plan={plan} 
+                        pendingCompleted={pendingChanges[plan.id] !== undefined ? pendingChanges[plan.id] : undefined}
+                        onCompletionChange={handleCompletionChange}
+                      />
                     </div>
                   ))}
                 </div>
@@ -259,6 +306,18 @@ function HomeContent() {
           </>
         )}
       </main>
+
+      {/* 저장되지 않음 토스트 알림 */}
+      {showUnsavedToast && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in-up">
+          <div className="flex items-center gap-3 px-5 py-3 bg-[#fef3c7] border border-[#fcd34d] rounded-xl shadow-lg">
+            <AlertTriangle size={20} className="text-[#f59e0b]" />
+            <span className="text-sm font-medium text-[#92400e]">
+              저장되지 않은 변경사항이 있습니다. 먼저 저장해주세요!
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
