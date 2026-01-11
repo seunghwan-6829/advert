@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .select('*')
           .eq('user_id', userId)
           .single(),
-        timeout(2000)
+        timeout(1500)
       ]) as { data: { can_create_plans: boolean; can_view_projects: boolean; allowed_brand_ids: string[] } | null; error: unknown };
       
       if (result.error || !result.data) {

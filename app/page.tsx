@@ -73,8 +73,11 @@ function HomeContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    // 권한이 있을 때만 기획안 로드
-    if (canViewProjects) {
+    // 관리자는 authLoading 끝나자마자 바로 로드 (권한 체크 대기 없이)
+    // 일반 유저는 권한 체크 후 로드
+    if (authLoading) return;
+    
+    if (isAdmin || canViewProjects) {
       const loadPlans = async () => {
         const data = await getPlans();
         setPlans(data);
@@ -84,7 +87,7 @@ function HomeContent() {
     } else {
       setLoading(false);
     }
-  }, [canViewProjects]);
+  }, [authLoading, isAdmin, canViewProjects]);
 
   // 브랜드 + 검색 필터링 (프로젝트 선택해야만 기획안 표시)
   const filteredPlans = selectedBrandId 
