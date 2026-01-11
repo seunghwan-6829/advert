@@ -127,3 +127,29 @@ input:focus, textarea:focus, select:focus {
   background: #fff7ed;
   color: #c2410c;
 }
+
+/* Shimmer 애니메이션 (스켈레톤 로딩) */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* 페이드 인 업 애니메이션 */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out forwards;
+}

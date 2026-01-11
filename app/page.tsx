@@ -11,13 +11,35 @@ import { FileText, Search, Plus, LayoutGrid, List, Lock, Save, AlertTriangle } f
 import { updatePlan } from '@/lib/store';
 import Link from 'next/link';
 
-// 스켈레톤 카드 컴포넌트
+// 스켈레톤 카드 컴포넌트 - 실제 카드와 동일한 구조
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-xl p-4 border border-[#f0e6dc] animate-pulse">
-      <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-      <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-      <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+    <div className="bg-white rounded-xl p-5 border border-[#f0e6dc] overflow-hidden relative">
+      {/* Shimmer 효과 */}
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+      
+      {/* 상단: 태그 & 날짜 */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-20 bg-[#fff7ed] rounded-full" />
+          <div className="h-6 w-16 bg-gray-100 rounded-full" />
+        </div>
+        <div className="h-4 w-16 bg-gray-100 rounded" />
+      </div>
+      
+      {/* 제목 */}
+      <div className="h-6 bg-gray-200 rounded w-4/5 mb-3" />
+      
+      {/* 미리보기 텍스트 */}
+      <div className="space-y-2 mb-4">
+        <div className="h-4 bg-gray-100 rounded w-full" />
+        <div className="h-4 bg-gray-100 rounded w-2/3" />
+      </div>
+      
+      {/* 하단 */}
+      <div className="pt-3 border-t border-[#f0e6dc] flex justify-end">
+        <div className="h-4 w-20 bg-[#fff7ed] rounded" />
+      </div>
     </div>
   );
 }
@@ -322,26 +344,53 @@ function HomeContent() {
   );
 }
 
-// 메인 페이지 스켈레톤
+// 메인 페이지 스켈레톤 - 더 풍부하게
 function PageSkeleton() {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[#f8f6f2]">
+      {/* 사이드바 스켈레톤 */}
       <aside className="w-60 h-screen bg-white flex flex-col border-r border-[#f0e6dc] fixed left-0 top-0">
         <div className="p-4 pb-2">
-          <div className="h-6 bg-gray-200 rounded w-32 animate-pulse"></div>
+          <div className="h-7 bg-gray-200 rounded w-24 animate-pulse"></div>
         </div>
         <div className="px-4 pb-4 border-b border-[#f0e6dc]">
-          <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-9 bg-gray-100 rounded-lg w-full animate-pulse"></div>
         </div>
-        <div className="p-3 space-y-2">
-          <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+        <div className="p-3 border-b border-[#f0e6dc]">
+          <div className="h-12 bg-[#fff7ed] rounded-lg animate-pulse"></div>
+        </div>
+        <div className="px-3 pt-4">
+          <div className="h-8 bg-gray-100 rounded-lg w-32 mb-3 animate-pulse"></div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-10 bg-gray-50 rounded-lg animate-pulse"></div>
+            ))}
+          </div>
         </div>
       </aside>
-      <main className="flex-1 ml-60 p-8">
-        <div className="flex gap-4 mb-6">
-          <div className="h-16 w-32 bg-gray-200 rounded-xl animate-pulse"></div>
-          <div className="h-16 w-32 bg-gray-200 rounded-xl animate-pulse"></div>
+      
+      {/* 메인 콘텐츠 스켈레톤 */}
+      <main className="flex-1 ml-60">
+        <div className="sticky top-0 z-10 bg-white border-b border-[#f0e6dc] px-8 py-4">
+          <div className="flex items-center gap-6">
+            <div className="h-8 w-24 bg-gray-100 rounded-lg animate-pulse"></div>
+            <div className="h-10 flex-1 max-w-md bg-gray-100 rounded-xl animate-pulse"></div>
+          </div>
+        </div>
+        <div className="px-8 py-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="h-7 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="flex gap-2">
+              <div className="h-10 w-10 bg-gray-100 rounded-lg animate-pulse"></div>
+              <div className="h-10 w-10 bg-gray-100 rounded-lg animate-pulse"></div>
+              <div className="h-10 w-28 bg-[#fff7ed] rounded-lg animate-pulse"></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
         </div>
       </main>
     </div>
