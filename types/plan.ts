@@ -21,6 +21,7 @@ export interface StoryboardItem {
   effect: string; // 효과
   note: string; // 특이사항
   narration: string; // 대본/나레이션
+  sourceFiles?: (SourceFile | null)[]; // 소스 파일 (최대 3개)
 }
 
 // 행 높이 설정
@@ -57,7 +58,6 @@ export interface Plan {
   storyboard: StoryboardItem[]; // 스토리보드
   rowHeights?: RowHeights; // 행 높이 설정 (선택)
   rowOrder?: RowType[]; // 행 순서 설정 (선택)
-  sourceFiles?: (SourceFile | null)[]; // 소스 파일 (최대 3개)
   isCompleted?: boolean; // 제작 완료 여부
   createdAt: string;
   updatedAt: string;

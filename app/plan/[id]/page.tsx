@@ -354,15 +354,18 @@ function PlanDetailContent() {
     handleUpdateColumn(index, 'image', '');
   };
 
-  // 소스 파일 업로드
-  const handleSourceFileUpload = (index: number) => {
-    setUploadingSourceIndex(index);
+  // 소스 파일 업로드 (columnIndex: 스토리보드 열 인덱스, fileIndex: 소스 파일 인덱스 0-2)
+  const [uploadingSourceColumn, setUploadingSourceColumn] = useState<number | null>(null);
+  
+  const handleSourceFileUpload = (columnIndex: number, fileIndex: number) => {
+    setUploadingSourceColumn(columnIndex);
+    setUploadingSourceIndex(fileIndex);
     sourceFileInputRef.current?.click();
   };
 
   const handleSourceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || uploadingSourceIndex === null || !plan) return;
+    if (!file || uploadingSourceIndex === null || uploadingSourceColumn === null || !plan) return;
 
     // 5MB 제한
     if (file.size > 5 * 1024 * 1024) {
@@ -372,15 +375,20 @@ function PlanDetailContent() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const sourceFiles = plan.sourceFiles ? [...plan.sourceFiles] : [null, null, null];
+      const newStoryboard = [...plan.storyboard];
+      const item = { ...newStoryboard[uploadingSourceColumn] };
+      const sourceFiles = item.sourceFiles ? [...item.sourceFiles] : [null, null, null];
       sourceFiles[uploadingSourceIndex] = {
         name: file.name,
         data: reader.result as string,
         size: file.size,
         uploadedAt: new Date().toISOString(),
       };
-      setPlan({ ...plan, sourceFiles });
+      item.sourceFiles = sourceFiles;
+      newStoryboard[uploadingSourceColumn] = item;
+      setPlan({ ...plan, storyboard: newStoryboard });
       setUploadingSourceIndex(null);
+      setUploadingSourceColumn(null);
     };
     reader.readAsDataURL(file);
     
@@ -396,11 +404,15 @@ function PlanDetailContent() {
     document.body.removeChild(link);
   };
 
-  const handleSourceFileDelete = (index: number) => {
+  const handleSourceFileDelete = (columnIndex: number, fileIndex: number) => {
     if (!plan) return;
-    const sourceFiles = plan.sourceFiles ? [...plan.sourceFiles] : [null, null, null];
-    sourceFiles[index] = null;
-    setPlan({ ...plan, sourceFiles });
+    const newStoryboard = [...plan.storyboard];
+    const item = { ...newStoryboard[columnIndex] };
+    const sourceFiles = item.sourceFiles ? [...item.sourceFiles] : [null, null, null];
+    sourceFiles[fileIndex] = null;
+    item.sourceFiles = sourceFiles;
+    newStoryboard[columnIndex] = item;
+    setPlan({ ...plan, storyboard: newStoryboard });
   };
 
   // 파일 크기 포맷
@@ -808,6 +820,51 @@ function PlanDetailContent() {
                       </div>
                     );
                   })}
+
+                  {/* 소스 파일 섹션 */}
+                  <div className="p-2 bg-[#fafafa] border-b border-[#e5e7eb]">
+                    <div className="text-xs font-medium text-[#6b7280] mb-2 flex items-center gap-1">
+                      <File size={12} />
+                      소스 파일
+                    </div>
+                    <div className="space-y-1">
+                      {[0, 1, 2].map((fileIndex) => {
+                        const sourceFile = item.sourceFiles?.[fileIndex];
+                        return (
+                          <div key={fileIndex} className="flex items-center gap-1">
+                            <span className="text-xs text-[#9ca3af] w-10">소스{fileIndex + 1}</span>
+                            {sourceFile ? (
+                              <div className="flex-1 flex items-center gap-1 px-2 py-1 bg-white rounded border border-[#e5e7eb] min-w-0">
+                                <span className="text-xs text-[#1a1a1a] truncate flex-1">{sourceFile.name}</span>
+                                <button
+                                  onClick={() => handleSourceFileDownload(sourceFile)}
+                                  className="p-0.5 text-[#f97316] hover:text-[#ea580c]"
+                                  title="다운로드"
+                                >
+                                  <Download size={12} />
+                                </button>
+                                <button
+                                  onClick={() => handleSourceFileDelete(index, fileIndex)}
+                                  className="p-0.5 text-[#ef4444] hover:text-[#dc2626]"
+                                  title="삭제"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleSourceFileUpload(index, fileIndex)}
+                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1 border border-dashed border-[#d1d5db] rounded text-xs text-[#9ca3af] hover:text-[#f97316] hover:border-[#f97316] transition-colors"
+                              >
+                                <Upload size={10} />
+                                업로드
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               ))}
 
@@ -823,61 +880,6 @@ function PlanDetailContent() {
           </div>
         </div>
 
-        {/* 소스 파일 업로드 섹션 */}
-        <div className="mt-6 bg-white rounded-2xl border border-[#e5e7eb] p-6">
-          <h3 className="text-lg font-semibold text-[#1a1a1a] mb-4 flex items-center gap-2">
-            <File size={20} className="text-[#f97316]" />
-            소스 파일 (최대 5MB)
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            {[0, 1, 2].map((index) => {
-              const sourceFile = plan.sourceFiles?.[index];
-              return (
-                <div 
-                  key={index}
-                  className="border border-[#e5e7eb] rounded-xl p-4 bg-[#fafafa]"
-                >
-                  <div className="text-sm font-medium text-[#6b7280] mb-3">소스 {index + 1}</div>
-                  
-                  {sourceFile ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-[#e5e7eb]">
-                        <File size={20} className="text-[#f97316] flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#1a1a1a] truncate">{sourceFile.name}</p>
-                          <p className="text-xs text-[#9ca3af]">{formatFileSize(sourceFile.size)}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSourceFileDownload(sourceFile)}
-                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#f97316] text-white text-sm font-medium rounded-lg hover:bg-[#ea580c] transition-colors"
-                        >
-                          <Download size={14} />
-                          다운로드
-                        </button>
-                        <button
-                          onClick={() => handleSourceFileDelete(index)}
-                          className="px-3 py-2 text-[#ef4444] hover:bg-[#fef2f2] rounded-lg transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleSourceFileUpload(index)}
-                      className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#e5e7eb] rounded-lg text-[#9ca3af] hover:text-[#f97316] hover:border-[#f97316] hover:bg-[#fff7ed] transition-all"
-                    >
-                      <Upload size={24} />
-                      <span className="text-sm">파일 업로드</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </main>
     </div>
   );

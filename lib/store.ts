@@ -487,7 +487,6 @@ const transformFromSupabase = (data: any): Plan => ({
   storyboard: data.storyboard || [],
   rowHeights: data.row_heights || undefined,
   rowOrder: data.row_order || undefined,
-  sourceFiles: data.source_files || undefined,
   isCompleted: data.is_completed || false,
   createdAt: data.created_at,
   updatedAt: data.updated_at,
@@ -503,7 +502,6 @@ const transformToSupabase = (plan: Plan) => ({
   storyboard: plan.storyboard,
   row_heights: plan.rowHeights || null,
   row_order: plan.rowOrder || null,
-  source_files: plan.sourceFiles || null,
   is_completed: plan.isCompleted || false,
   created_at: plan.createdAt,
   updated_at: plan.updatedAt,
@@ -521,7 +519,6 @@ const transformToSupabaseForUpdate = (plan: Partial<Plan>) => {
   if (plan.storyboard !== undefined) result.storyboard = plan.storyboard;
   if (plan.rowHeights !== undefined) result.row_heights = plan.rowHeights;
   if (plan.rowOrder !== undefined) result.row_order = plan.rowOrder;
-  if (plan.sourceFiles !== undefined) result.source_files = plan.sourceFiles;
   if (plan.isCompleted !== undefined) result.is_completed = plan.isCompleted;
   
   return result;
