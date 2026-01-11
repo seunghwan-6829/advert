@@ -248,121 +248,56 @@ function PlanDetailContent() {
     setShowExportModal(false);
     
     try {
-      // 스토리보드 컨테이너의 전체 너비를 캡처하기 위해 스크롤 위치 저장
       const container = storyboardRef.current;
-      const scrollContainer = container.querySelector('.storyboard-scroll') as HTMLElement;
-      const originalScrollLeft = scrollContainer?.scrollLeft || 0;
       
-      // 스크롤을 처음으로 이동
-      if (scrollContainer) {
-        scrollContainer.scrollLeft = 0;
-      }
-      
-      // 잠시 대기 후 캡처
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // 전체 스토리보드 내용을 담을 캔버스 생성
-      const innerContent = container.querySelector('.inline-flex') as HTMLElement;
-      if (!innerContent) {
-        throw new Error('스토리보드를 찾을 수 없습니다.');
-      }
-      
-      // html2canvas로 캡처
-      const canvas = await html2canvas(innerContent, {
+      // html2canvas로 스토리보드 전체 캡처
+      const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: container.scrollWidth + 100,
+        width: container.scrollWidth,
       });
-      
-      // 스크롤 위치 복원
-      if (scrollContainer) {
-        scrollContainer.scrollLeft = originalScrollLeft;
-      }
       
       // PDF 생성 (가로 방향)
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
       
-      // A4 가로 크기 기준으로 스케일 계산
-      const pdfWidth = 297; // A4 가로 mm
-      const pdfHeight = 210; // A4 세로 mm
-      const margin = 10;
+      // 이미지 비율에 맞게 PDF 크기 결정
+      const pdfWidth = imgWidth * 0.264583; // px to mm (1px = 0.264583mm at 96dpi, but we use scale:2)
+      const pdfHeight = imgHeight * 0.264583;
       
-      const contentWidth = pdfWidth - (margin * 2);
-      const scale = contentWidth / imgWidth * 2; // scale: 2로 캡처했으므로
-      const scaledHeight = imgHeight * scale / 2;
+      // 최대 크기 제한 (A4 기준)
+      const maxWidth = 420; // A3 가로
+      const maxHeight = 297; // A3 세로
       
-      // 여러 페이지 필요한 경우 처리
-      const pageHeight = pdfHeight - (margin * 2);
-      const totalPages = Math.ceil(scaledHeight / pageHeight);
+      let finalWidth = pdfWidth / 2; // scale:2로 캡처했으므로
+      let finalHeight = pdfHeight / 2;
+      
+      // 비율 유지하면서 크기 조정
+      if (finalWidth > maxWidth) {
+        const ratio = maxWidth / finalWidth;
+        finalWidth = maxWidth;
+        finalHeight = finalHeight * ratio;
+      }
       
       const doc = new jsPDF({
-        orientation: 'landscape',
+        orientation: finalWidth > finalHeight ? 'landscape' : 'portrait',
         unit: 'mm',
-        format: 'a4',
+        format: [finalWidth + 20, finalHeight + 20], // 여백 포함
       });
       
-      // 제목 페이지 추가
-      doc.setFontSize(24);
-      doc.text(plan.title, pdfWidth / 2, 30, { align: 'center' });
-      
-      doc.setFontSize(12);
-      let infoY = 50;
-      if (plan.reference) {
-        doc.text(`레퍼런스: ${plan.reference}`, margin, infoY);
-        infoY += 8;
-      }
-      if (plan.ctaText) {
-        doc.text(`CTA 문장: ${plan.ctaText}`, margin, infoY);
-        infoY += 8;
-      }
-      if (plan.summary) {
-        doc.text(`요약: ${plan.summary}`, margin, infoY);
-        infoY += 8;
-      }
-      doc.text(`작성일: ${new Date(plan.createdAt).toLocaleDateString('ko-KR')}`, margin, infoY);
-      infoY += 8;
-      doc.text(`장면 수: ${plan.storyboard.length}개`, margin, infoY);
-      
-      // 스토리보드 이미지 페이지 추가
-      doc.addPage();
-      
       const imgData = canvas.toDataURL('image/png');
-      
-      // 이미지가 한 페이지에 들어갈 수 있으면 한 페이지에
-      if (scaledHeight <= pageHeight) {
-        doc.addImage(imgData, 'PNG', margin, margin, contentWidth, scaledHeight);
-      } else {
-        // 여러 페이지로 나눠서 출력
-        let yOffset = 0;
-        for (let page = 0; page < totalPages; page++) {
-          if (page > 0) {
-            doc.addPage();
-          }
-          
-          // 캔버스에서 해당 부분만 잘라서 추가
-          const sourceY = (page * pageHeight / scale) * 2;
-          const sourceHeight = Math.min((pageHeight / scale) * 2, imgHeight - sourceY);
-          
-          // 임시 캔버스에 해당 부분만 그리기
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = imgWidth;
-          tempCanvas.height = sourceHeight;
-          const ctx = tempCanvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(canvas, 0, sourceY, imgWidth, sourceHeight, 0, 0, imgWidth, sourceHeight);
-            const partImgData = tempCanvas.toDataURL('image/png');
-            doc.addImage(partImgData, 'PNG', margin, margin, contentWidth, sourceHeight * scale / 2);
-          }
-        }
-      }
+      doc.addImage(imgData, 'PNG', 10, 10, finalWidth, finalHeight);
       
       doc.save(`${plan.title}_기획안.pdf`);
     } catch (error) {
       console.error('PDF 내보내기 오류:', error);
-      alert('PDF 내보내기 중 오류가 발생했습니다.');
+      alert('PDF 내보내기 중 오류가 발생했습니다. 다시 시도해주세요.');
     } finally {
       setExportingPDF(false);
     }
