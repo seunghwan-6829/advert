@@ -712,7 +712,7 @@ function PlanDetailContent() {
                   </div>
                 ))}
                 {/* 소스 파일 레이블 */}
-                <div className="h-[88px] flex items-center justify-center border-b border-[#e5e7eb] bg-[#fafafa]">
+                <div className="h-[100px] flex items-center justify-center border-b border-[#e5e7eb] bg-[#fafafa]">
                   <span className="text-sm font-semibold text-[#374151]">소스</span>
                 </div>
               </div>
@@ -826,11 +826,7 @@ function PlanDetailContent() {
                   })}
 
                   {/* 소스 파일 섹션 */}
-                  <div className="p-2 bg-[#fafafa] border-b border-[#e5e7eb]">
-                    <div className="text-xs font-medium text-[#6b7280] mb-2 flex items-center gap-1">
-                      <File size={12} />
-                      소스 파일
-                    </div>
+                  <div className="h-[100px] p-2 bg-[#fafafa] border-b border-[#e5e7eb]">
                     <div className="space-y-1">
                       {[0, 1, 2].map((fileIndex) => {
                         const sourceFile = item.sourceFiles?.[fileIndex];
