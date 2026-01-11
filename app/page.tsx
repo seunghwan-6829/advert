@@ -7,7 +7,7 @@ import { getPlans } from '@/lib/store';
 import { useAuth } from '@/lib/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import PlanCard from '@/components/PlanCard';
-import { FileText, CheckCircle, Search, Plus, LayoutGrid, List, Lock } from 'lucide-react';
+import { FileText, Search, Plus, LayoutGrid, List, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 // 스켈레톤 카드 컴포넌트
@@ -72,13 +72,6 @@ function HomeContent() {
   // 통계 계산
   const stats = {
     total: filteredPlans.length,
-    completed: filteredPlans.filter(p => p.isCompleted).length,
-  };
-
-  // 기획안 목록 새로고침
-  const refreshPlans = async () => {
-    const data = await getPlans();
-    setPlans(data);
   };
 
   // 브랜드 선택 시 URL 업데이트
@@ -150,11 +143,6 @@ function HomeContent() {
                   <FileText size={16} className="text-[#f97316]" />
                   <span className="text-lg font-bold text-[#1a1a1a]">{stats.total}</span>
                   <span className="text-sm text-[#6b7280]">전체 개수</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={16} className="text-[#22c55e]" />
-                  <span className="text-lg font-bold text-[#1a1a1a]">{stats.completed}</span>
-                  <span className="text-sm text-[#6b7280]">완료</span>
                 </div>
 
                 {/* 검색바 */}
@@ -234,7 +222,7 @@ function HomeContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {filteredPlans.map((plan, index) => (
                     <div key={plan.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.03}s` }}>
-                      <PlanCard plan={plan} onUpdate={refreshPlans} />
+                      <PlanCard plan={plan} />
                     </div>
                   ))}
                 </div>
