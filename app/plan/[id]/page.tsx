@@ -24,6 +24,7 @@ import {
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // 기본 행 높이 설정
 const DEFAULT_ROW_HEIGHTS = {
@@ -53,11 +54,13 @@ function PlanDetailContent() {
   const [saving, setSaving] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
   
   const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
   const [rowOrder, setRowOrder] = useState<RowType[]>(DEFAULT_ROW_ORDER);
   const [resizing, setResizing] = useState<string | null>(null);
   const startY = useRef(0);
+  const storyboardRef = useRef<HTMLDivElement>(null);
   const startHeight = useRef(0);
   
   // 행 드래그 앤 드롭 상태
@@ -237,53 +240,132 @@ function PlanDetailContent() {
     setShowExportModal(false);
   };
 
-  // PDF로 내보내기
-  const handleExportPDF = () => {
-    if (!plan) return;
+  // PDF로 내보내기 (화면 캡처 방식)
+  const handleExportPDF = async () => {
+    if (!plan || !storyboardRef.current) return;
     
-    const doc = new jsPDF();
-    
-    // 제목
-    doc.setFontSize(18);
-    doc.text(plan.title, 20, 20);
-    
-    // 기본 정보
-    doc.setFontSize(10);
-    let y = 35;
-    if (plan.reference) {
-      doc.text(`Reference: ${plan.reference}`, 20, y);
-      y += 7;
-    }
-    if (plan.ctaText) {
-      doc.text(`CTA: ${plan.ctaText}`, 20, y);
-      y += 7;
-    }
-    doc.text(`Created: ${new Date(plan.createdAt).toLocaleDateString('ko-KR')}`, 20, y);
-    y += 15;
-    
-    // 스토리보드
-    doc.setFontSize(12);
-    doc.text('Storyboard', 20, y);
-    y += 10;
-    
-    doc.setFontSize(9);
-    plan.storyboard.forEach((item, index) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(`#${index + 1}`, 20, y);
-      y += 5;
-      if (item.timeline) { doc.text(`Timeline: ${item.timeline}`, 25, y); y += 5; }
-      if (item.source) { doc.text(`Source: ${item.source}`, 25, y); y += 5; }
-      if (item.effect) { doc.text(`Effect: ${item.effect}`, 25, y); y += 5; }
-      if (item.note) { doc.text(`Note: ${item.note}`, 25, y); y += 5; }
-      if (item.narration) { doc.text(`Narration: ${item.narration}`, 25, y); y += 5; }
-      y += 5;
-    });
-    
-    doc.save(`${plan.title}_기획안.pdf`);
+    setExportingPDF(true);
     setShowExportModal(false);
+    
+    try {
+      // 스토리보드 컨테이너의 전체 너비를 캡처하기 위해 스크롤 위치 저장
+      const container = storyboardRef.current;
+      const scrollContainer = container.querySelector('.storyboard-scroll') as HTMLElement;
+      const originalScrollLeft = scrollContainer?.scrollLeft || 0;
+      
+      // 스크롤을 처음으로 이동
+      if (scrollContainer) {
+        scrollContainer.scrollLeft = 0;
+      }
+      
+      // 잠시 대기 후 캡처
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // 전체 스토리보드 내용을 담을 캔버스 생성
+      const innerContent = container.querySelector('.inline-flex') as HTMLElement;
+      if (!innerContent) {
+        throw new Error('스토리보드를 찾을 수 없습니다.');
+      }
+      
+      // html2canvas로 캡처
+      const canvas = await html2canvas(innerContent, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+      
+      // 스크롤 위치 복원
+      if (scrollContainer) {
+        scrollContainer.scrollLeft = originalScrollLeft;
+      }
+      
+      // PDF 생성 (가로 방향)
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      
+      // A4 가로 크기 기준으로 스케일 계산
+      const pdfWidth = 297; // A4 가로 mm
+      const pdfHeight = 210; // A4 세로 mm
+      const margin = 10;
+      
+      const contentWidth = pdfWidth - (margin * 2);
+      const scale = contentWidth / imgWidth * 2; // scale: 2로 캡처했으므로
+      const scaledHeight = imgHeight * scale / 2;
+      
+      // 여러 페이지 필요한 경우 처리
+      const pageHeight = pdfHeight - (margin * 2);
+      const totalPages = Math.ceil(scaledHeight / pageHeight);
+      
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      // 제목 페이지 추가
+      doc.setFontSize(24);
+      doc.text(plan.title, pdfWidth / 2, 30, { align: 'center' });
+      
+      doc.setFontSize(12);
+      let infoY = 50;
+      if (plan.reference) {
+        doc.text(`레퍼런스: ${plan.reference}`, margin, infoY);
+        infoY += 8;
+      }
+      if (plan.ctaText) {
+        doc.text(`CTA 문장: ${plan.ctaText}`, margin, infoY);
+        infoY += 8;
+      }
+      if (plan.summary) {
+        doc.text(`요약: ${plan.summary}`, margin, infoY);
+        infoY += 8;
+      }
+      doc.text(`작성일: ${new Date(plan.createdAt).toLocaleDateString('ko-KR')}`, margin, infoY);
+      infoY += 8;
+      doc.text(`장면 수: ${plan.storyboard.length}개`, margin, infoY);
+      
+      // 스토리보드 이미지 페이지 추가
+      doc.addPage();
+      
+      const imgData = canvas.toDataURL('image/png');
+      
+      // 이미지가 한 페이지에 들어갈 수 있으면 한 페이지에
+      if (scaledHeight <= pageHeight) {
+        doc.addImage(imgData, 'PNG', margin, margin, contentWidth, scaledHeight);
+      } else {
+        // 여러 페이지로 나눠서 출력
+        let yOffset = 0;
+        for (let page = 0; page < totalPages; page++) {
+          if (page > 0) {
+            doc.addPage();
+          }
+          
+          // 캔버스에서 해당 부분만 잘라서 추가
+          const sourceY = (page * pageHeight / scale) * 2;
+          const sourceHeight = Math.min((pageHeight / scale) * 2, imgHeight - sourceY);
+          
+          // 임시 캔버스에 해당 부분만 그리기
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = imgWidth;
+          tempCanvas.height = sourceHeight;
+          const ctx = tempCanvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(canvas, 0, sourceY, imgWidth, sourceHeight, 0, 0, imgWidth, sourceHeight);
+            const partImgData = tempCanvas.toDataURL('image/png');
+            doc.addImage(partImgData, 'PNG', margin, margin, contentWidth, sourceHeight * scale / 2);
+          }
+        }
+      }
+      
+      doc.save(`${plan.title}_기획안.pdf`);
+    } catch (error) {
+      console.error('PDF 내보내기 오류:', error);
+      alert('PDF 내보내기 중 오류가 발생했습니다.');
+    } finally {
+      setExportingPDF(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -474,6 +556,17 @@ function PlanDetailContent() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f2]">
+      {/* PDF 내보내기 로딩 */}
+      {exportingPDF && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
+            <div className="w-12 h-12 border-4 border-[#f97316] border-t-transparent rounded-full animate-spin" />
+            <p className="text-lg font-semibold text-[#1a1a1a]">PDF 생성 중...</p>
+            <p className="text-sm text-[#6b7280]">스토리보드를 캡처하고 있습니다</p>
+          </div>
+        </div>
+      )}
+
       {/* 저장 안됨 모달 */}
       {showUnsavedModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -672,7 +765,7 @@ function PlanDetailContent() {
         </div>
 
         {/* 가로 스크롤 스토리보드 */}
-        <div className="bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden">
+        <div ref={storyboardRef} className="bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden">
           <div className="overflow-x-auto storyboard-scroll">
             <div className="inline-flex min-w-full">
               {/* 행 라벨 (고정) */}
