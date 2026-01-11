@@ -23,8 +23,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
 // 기본 행 높이 설정
 const DEFAULT_ROW_HEIGHTS = {
@@ -54,13 +52,11 @@ function PlanDetailContent() {
   const [saving, setSaving] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportingPDF, setExportingPDF] = useState(false);
   
   const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
   const [rowOrder, setRowOrder] = useState<RowType[]>(DEFAULT_ROW_ORDER);
   const [resizing, setResizing] = useState<string | null>(null);
   const startY = useRef(0);
-  const storyboardRef = useRef<HTMLDivElement>(null);
   const startHeight = useRef(0);
   
   // 행 드래그 앤 드롭 상태
@@ -240,67 +236,58 @@ function PlanDetailContent() {
     setShowExportModal(false);
   };
 
-  // PDF로 내보내기 (화면 캡처 방식)
-  const handleExportPDF = async () => {
-    if (!plan || !storyboardRef.current) return;
+  // 텍스트 파일로 내보내기
+  const handleExportTXT = () => {
+    if (!plan) return;
     
-    setExportingPDF(true);
     setShowExportModal(false);
     
-    try {
-      const container = storyboardRef.current;
+    // 텍스트 내용 생성
+    let content = '';
+    content += `═══════════════════════════════════════════════════════════════\n`;
+    content += `📋 ${plan.title}\n`;
+    content += `═══════════════════════════════════════════════════════════════\n\n`;
+    
+    // 기본 정보
+    content += `📅 작성일: ${new Date(plan.createdAt).toLocaleDateString('ko-KR')}\n`;
+    content += `🎬 장면 수: ${plan.storyboard.length}개\n`;
+    if (plan.reference) content += `🔗 레퍼런스: ${plan.reference}\n`;
+    if (plan.ctaText) content += `💬 CTA 문장: ${plan.ctaText}\n`;
+    if (plan.summary) content += `📝 요약: ${plan.summary}\n`;
+    
+    content += `\n───────────────────────────────────────────────────────────────\n`;
+    content += `                         스토리보드\n`;
+    content += `───────────────────────────────────────────────────────────────\n\n`;
+    
+    // 스토리보드 내용
+    plan.storyboard.forEach((item, index) => {
+      content += `┌─────────────────────────────────────────────────────────────┐\n`;
+      content += `│  #${index + 1} 장면\n`;
+      content += `├─────────────────────────────────────────────────────────────┤\n`;
       
-      // html2canvas로 스토리보드 전체 캡처
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: container.scrollWidth + 100,
-        width: container.scrollWidth,
-      });
+      if (item.timeline) content += `│  ⏱️ 타임라인: ${item.timeline}\n`;
+      if (item.source) content += `│  📁 소스: ${item.source}\n`;
+      if (item.effect) content += `│  ✨ 효과: ${item.effect}\n`;
+      if (item.note) content += `│  📌 특이사항: ${item.note}\n`;
+      if (item.narration) content += `│  🎙️ 대본: ${item.narration}\n`;
       
-      // PDF 생성 (가로 방향)
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      
-      // 이미지 비율에 맞게 PDF 크기 결정
-      const pdfWidth = imgWidth * 0.264583; // px to mm (1px = 0.264583mm at 96dpi, but we use scale:2)
-      const pdfHeight = imgHeight * 0.264583;
-      
-      // 최대 크기 제한 (A4 기준)
-      const maxWidth = 420; // A3 가로
-      const maxHeight = 297; // A3 세로
-      
-      let finalWidth = pdfWidth / 2; // scale:2로 캡처했으므로
-      let finalHeight = pdfHeight / 2;
-      
-      // 비율 유지하면서 크기 조정
-      if (finalWidth > maxWidth) {
-        const ratio = maxWidth / finalWidth;
-        finalWidth = maxWidth;
-        finalHeight = finalHeight * ratio;
-      }
-      
-      const doc = new jsPDF({
-        orientation: finalWidth > finalHeight ? 'landscape' : 'portrait',
-        unit: 'mm',
-        format: [finalWidth + 20, finalHeight + 20], // 여백 포함
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      doc.addImage(imgData, 'PNG', 10, 10, finalWidth, finalHeight);
-      
-      doc.save(`${plan.title}_기획안.pdf`);
-    } catch (error) {
-      console.error('PDF 내보내기 오류:', error);
-      alert('PDF 내보내기 중 오류가 발생했습니다. 다시 시도해주세요.');
-    } finally {
-      setExportingPDF(false);
-    }
+      content += `└─────────────────────────────────────────────────────────────┘\n\n`;
+    });
+    
+    content += `═══════════════════════════════════════════════════════════════\n`;
+    content += `                    기획안 내보내기 완료\n`;
+    content += `═══════════════════════════════════════════════════════════════\n`;
+    
+    // 파일 다운로드
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${plan.title}_기획안.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleDelete = async () => {
@@ -491,17 +478,6 @@ function PlanDetailContent() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f2]">
-      {/* PDF 내보내기 로딩 */}
-      {exportingPDF && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
-            <div className="w-12 h-12 border-4 border-[#f97316] border-t-transparent rounded-full animate-spin" />
-            <p className="text-lg font-semibold text-[#1a1a1a]">PDF 생성 중...</p>
-            <p className="text-sm text-[#6b7280]">스토리보드를 캡처하고 있습니다</p>
-          </div>
-        </div>
-      )}
-
       {/* 저장 안됨 모달 */}
       {showUnsavedModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -571,13 +547,13 @@ function PlanDetailContent() {
                 </div>
               </button>
               <button
-                onClick={handleExportPDF}
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-[#e5e7eb] hover:border-[#ef4444] hover:bg-[#fef2f2] transition-all"
+                onClick={handleExportTXT}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl border border-[#e5e7eb] hover:border-[#6b7280] hover:bg-[#f5f5f5] transition-all"
               >
-                <FileText size={22} className="text-[#ef4444]" />
+                <FileText size={22} className="text-[#6b7280]" />
                 <div className="text-left">
-                  <div className="font-semibold text-[#1a1a1a]">PDF 파일</div>
-                  <div className="text-xs text-[#6b7280]">.pdf 형식으로 저장</div>
+                  <div className="font-semibold text-[#1a1a1a]">텍스트 파일</div>
+                  <div className="text-xs text-[#6b7280]">.txt 형식으로 저장</div>
                 </div>
               </button>
             </div>
@@ -700,7 +676,7 @@ function PlanDetailContent() {
         </div>
 
         {/* 가로 스크롤 스토리보드 */}
-        <div ref={storyboardRef} className="bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#e5e7eb] overflow-hidden">
           <div className="overflow-x-auto storyboard-scroll">
             <div className="inline-flex min-w-full">
               {/* 행 라벨 (고정) */}
