@@ -5,7 +5,7 @@ import { Plus, FileText, Home, LogOut, FolderKanban, GripVertical, Pencil, Trash
 import Link from 'next/link';
 import { Plan, Brand } from '@/types/plan';
 import { useAuth } from '@/lib/AuthContext';
-import { getBrands, createBrand, updateBrand, deleteBrand, getDeletedBrands, restoreBrand, permanentDeleteBrand } from '@/lib/store';
+import { getBrands, createBrand, updateBrand, deleteBrand, getDeletedBrands, restoreBrand, permanentDeleteBrand, reorderBrands } from '@/lib/store';
 import AccessDeniedModal from './AccessDeniedModal';
 import BrandModal from './BrandModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
@@ -25,6 +25,10 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [deletedBrands, setDeletedBrands] = useState<Brand[]>([]);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  
+  // 드래그 앤 드롭 상태
+  const [draggedBrandId, setDraggedBrandId] = useState<string | null>(null);
+  const [dragOverBrandId, setDragOverBrandId] = useState<string | null>(null);
 
   // 권한 체크: 관리자이거나 프로젝트 열람 권한이 있는 경우
   const canViewProjects = isAdmin || permissions?.canViewProjects;
@@ -166,6 +170,58 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
     return plans.filter(p => p.brandId === brandId);
   };
 
+  // 드래그 앤 드롭 핸들러
+  const handleDragStart = (e: React.DragEvent, brandId: string) => {
+    setDraggedBrandId(brandId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedBrandId(null);
+    setDragOverBrandId(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, brandId: string) => {
+    e.preventDefault();
+    if (draggedBrandId && draggedBrandId !== brandId) {
+      setDragOverBrandId(brandId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverBrandId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetBrandId: string) => {
+    e.preventDefault();
+    if (!draggedBrandId || draggedBrandId === targetBrandId) {
+      setDraggedBrandId(null);
+      setDragOverBrandId(null);
+      return;
+    }
+
+    // 순서 변경
+    const currentBrands = [...brands];
+    const draggedIndex = currentBrands.findIndex(b => b.id === draggedBrandId);
+    const targetIndex = currentBrands.findIndex(b => b.id === targetBrandId);
+
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      // 드래그한 아이템을 제거하고 타겟 위치에 삽입
+      const [draggedBrand] = currentBrands.splice(draggedIndex, 1);
+      currentBrands.splice(targetIndex, 0, draggedBrand);
+
+      // 로컬 상태 먼저 업데이트 (즉각적인 UI 반응)
+      setBrands(currentBrands);
+
+      // 서버에 순서 저장
+      const newOrder = currentBrands.map(b => b.id);
+      await reorderBrands(newOrder);
+    }
+
+    setDraggedBrandId(null);
+    setDragOverBrandId(null);
+  };
+
   return (
     <>
       <aside className="w-60 h-screen bg-white flex flex-col border-r border-[#f0e6dc] fixed left-0 top-0">
@@ -272,13 +328,24 @@ export default function Sidebar({ plans, currentPlanId, selectedBrandId, onSelec
                   {visibleBrands.map((brand) => {
                   const brandPlans = getPlansByBrand(brand.id);
                   const isSelected = selectedBrandId === brand.id;
+                  const isDragging = draggedBrandId === brand.id;
+                  const isDragOver = dragOverBrandId === brand.id;
                   
                   return (
-                    <div key={brand.id} className="mb-1">
+                    <div 
+                      key={brand.id} 
+                      className={`mb-1 transition-all duration-200 ${isDragging ? 'opacity-50' : ''} ${isDragOver ? 'border-t-2 border-[#f97316]' : ''}`}
+                      draggable={isManageMode}
+                      onDragStart={(e) => handleDragStart(e, brand.id)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, brand.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, brand.id)}
+                    >
                       {/* 브랜드 버튼 */}
                       <div className="flex items-center group">
                         {isManageMode && (
-                          <div className="p-1 cursor-grab text-[#9ca3af] hover:text-[#6b7280]">
+                          <div className="p-1 cursor-grab active:cursor-grabbing text-[#9ca3af] hover:text-[#6b7280]">
                             <GripVertical size={14} />
                           </div>
                         )}
