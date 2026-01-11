@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Plan, StoryboardItem, RowHeights } from '@/types/plan';
+import { Plan, StoryboardItem, RowHeights, RowType, DEFAULT_ROW_ORDER } from '@/types/plan';
 import { getPlanById, updatePlan, deletePlan, createEmptyStoryboardItem, getBrandById } from '@/lib/store';
 import {
   ArrowLeft,
@@ -18,6 +18,7 @@ import {
   FileDown,
   FileSpreadsheet,
   FileText,
+  GripVertical,
 } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
@@ -51,9 +52,14 @@ function PlanDetailContent() {
   const [showExportModal, setShowExportModal] = useState(false);
   
   const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
+  const [rowOrder, setRowOrder] = useState<RowType[]>(DEFAULT_ROW_ORDER);
   const [resizing, setResizing] = useState<string | null>(null);
   const startY = useRef(0);
   const startHeight = useRef(0);
+  
+  // 행 드래그 앤 드롭 상태
+  const [draggedRow, setDraggedRow] = useState<RowType | null>(null);
+  const [dragOverRow, setDragOverRow] = useState<RowType | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -64,6 +70,11 @@ function PlanDetailContent() {
       // 저장된 행 높이가 있으면 불러오기
       if (planData?.rowHeights) {
         setRowHeights({ ...DEFAULT_ROW_HEIGHTS, ...planData.rowHeights });
+      }
+      
+      // 저장된 행 순서가 있으면 불러오기
+      if (planData?.rowOrder) {
+        setRowOrder(planData.rowOrder);
       }
       
       if (planData?.brandId) {
@@ -80,10 +91,55 @@ function PlanDetailContent() {
 
   const hasUnsavedChanges = () => {
     if (!plan || !originalPlan) return false;
-    // plan 비교 + rowHeights 비교
+    // plan 비교 + rowHeights + rowOrder 비교
     const planChanged = JSON.stringify(plan) !== JSON.stringify(originalPlan);
     const heightsChanged = JSON.stringify(rowHeights) !== JSON.stringify(originalPlan.rowHeights || DEFAULT_ROW_HEIGHTS);
-    return planChanged || heightsChanged;
+    const orderChanged = JSON.stringify(rowOrder) !== JSON.stringify(originalPlan.rowOrder || DEFAULT_ROW_ORDER);
+    return planChanged || heightsChanged || orderChanged;
+  };
+
+  // 행 드래그 핸들러
+  const handleRowDragStart = (e: React.DragEvent, rowKey: RowType) => {
+    setDraggedRow(rowKey);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleRowDragEnd = () => {
+    setDraggedRow(null);
+    setDragOverRow(null);
+  };
+
+  const handleRowDragOver = (e: React.DragEvent, rowKey: RowType) => {
+    e.preventDefault();
+    if (draggedRow && draggedRow !== rowKey) {
+      setDragOverRow(rowKey);
+    }
+  };
+
+  const handleRowDragLeave = () => {
+    setDragOverRow(null);
+  };
+
+  const handleRowDrop = (e: React.DragEvent, targetRow: RowType) => {
+    e.preventDefault();
+    if (!draggedRow || draggedRow === targetRow) {
+      setDraggedRow(null);
+      setDragOverRow(null);
+      return;
+    }
+
+    const newOrder = [...rowOrder];
+    const draggedIndex = newOrder.indexOf(draggedRow);
+    const targetIndex = newOrder.indexOf(targetRow);
+
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      newOrder.splice(draggedIndex, 1);
+      newOrder.splice(targetIndex, 0, draggedRow);
+      setRowOrder(newOrder);
+    }
+
+    setDraggedRow(null);
+    setDragOverRow(null);
   };
 
   const handleResizeStart = (rowKey: string, e: React.MouseEvent) => {
@@ -119,8 +175,8 @@ function PlanDetailContent() {
   const handleSave = async () => {
     if (!plan) return;
     setSaving(true);
-    // rowHeights도 함께 저장
-    const planToSave = { ...plan, rowHeights };
+    // rowHeights, rowOrder 함께 저장
+    const planToSave = { ...plan, rowHeights, rowOrder };
     await updatePlan(plan.id, planToSave);
     setPlan(planToSave);
     setOriginalPlan(JSON.parse(JSON.stringify(planToSave)));
@@ -130,8 +186,8 @@ function PlanDetailContent() {
   const handleSaveAndExit = async () => {
     if (!plan) return;
     setSaving(true);
-    // rowHeights도 함께 저장
-    const planToSave = { ...plan, rowHeights };
+    // rowHeights, rowOrder 함께 저장
+    const planToSave = { ...plan, rowHeights, rowOrder };
     await updatePlan(plan.id, planToSave);
     setSaving(false);
     setShowUnsavedModal(false);
@@ -329,14 +385,21 @@ function PlanDetailContent() {
 
   const backUrl = brandIdFromUrl || plan.brandId ? `/?brand=${brandIdFromUrl || plan.brandId}` : '/';
 
-  const rowLabels = [
-    { key: 'image', label: '영상' },
-    { key: 'timeline', label: '타임라인' },
-    { key: 'source', label: '소스' },
-    { key: 'effect', label: '효과' },
-    { key: 'note', label: '특이사항' },
-    { key: 'narration', label: '대본\n(나레이션)' },
-  ];
+  // 행 라벨 정의
+  const rowLabelMap: Record<RowType, string> = {
+    image: '영상',
+    timeline: '타임라인',
+    source: '소스',
+    effect: '효과',
+    note: '특이사항',
+    narration: '대본\n(나레이션)',
+  };
+
+  // rowOrder 기반으로 동적 생성
+  const rowLabels = rowOrder.map(key => ({
+    key,
+    label: rowLabelMap[key],
+  }));
 
   return (
     <div className="min-h-screen bg-[#f8f6f2]">
@@ -540,11 +603,25 @@ function PlanDetailContent() {
                 {rowLabels.map((row) => (
                   <div
                     key={row.key}
-                    className={`relative border-b border-[#e5e7eb] ${row.key === 'narration' ? 'bg-[#f5efe6]' : 'bg-[#fafafa]'}`}
+                    draggable
+                    onDragStart={(e) => handleRowDragStart(e, row.key)}
+                    onDragEnd={handleRowDragEnd}
+                    onDragOver={(e) => handleRowDragOver(e, row.key)}
+                    onDragLeave={handleRowDragLeave}
+                    onDrop={(e) => handleRowDrop(e, row.key)}
+                    className={`relative border-b border-[#e5e7eb] transition-all duration-200 ${
+                      row.key === 'narration' ? 'bg-[#f5efe6]' : 'bg-[#fafafa]'
+                    } ${draggedRow === row.key ? 'opacity-50' : ''} ${
+                      dragOverRow === row.key ? 'border-t-2 border-t-[#f97316]' : ''
+                    }`}
                     style={{ height: rowHeights[row.key as keyof typeof rowHeights] }}
                   >
-                    <div className="flex items-center justify-center h-full px-2">
-                      <span className="text-sm font-semibold text-[#374151] text-center whitespace-pre-line">
+                    <div className="flex items-center h-full px-2 gap-1">
+                      {/* 드래그 핸들 */}
+                      <div className="cursor-grab active:cursor-grabbing text-[#9ca3af] hover:text-[#6b7280]">
+                        <GripVertical size={14} />
+                      </div>
+                      <span className="text-sm font-semibold text-[#374151] text-center whitespace-pre-line flex-1">
                         {row.label}
                       </span>
                     </div>
@@ -571,113 +648,99 @@ function PlanDetailContent() {
                     </button>
                   </div>
 
-                  <div 
-                    className="border-b border-[#e5e7eb] relative group"
-                    style={{ height: rowHeights.image }}
-                  >
-                    {item.image ? (
-                      <div className="relative w-full h-full">
-                        <img
-                          src={item.image}
-                          alt={`Scene ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleImageDownload(item.image!, index)}
-                            className="p-2 bg-white rounded-lg text-[#1a1a1a] hover:bg-[#f5f5f5]"
-                            title="다운로드"
-                          >
-                            <Download size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleImageUpload(index)}
-                            className="p-2 bg-white rounded-lg text-[#1a1a1a] hover:bg-[#f5f5f5]"
-                            title="변경"
-                          >
-                            <Upload size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleImageDelete(index)}
-                            className="p-2 bg-white rounded-lg text-[#ef4444] hover:bg-[#fef2f2]"
-                            title="삭제"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                  {/* rowOrder 순서에 따라 동적 렌더링 */}
+                  {rowOrder.map((rowKey) => {
+                    const height = rowHeights[rowKey];
+                    const isNarration = rowKey === 'narration';
+                    
+                    // 영상 섹션
+                    if (rowKey === 'image') {
+                      return (
+                        <div 
+                          key={rowKey}
+                          className="border-b border-[#e5e7eb] relative group"
+                          style={{ height }}
+                        >
+                          {item.image ? (
+                            <div className="relative w-full h-full">
+                              <img
+                                src={item.image}
+                                alt={`Scene ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => handleImageDownload(item.image!, index)}
+                                  className="p-2 bg-white rounded-lg text-[#1a1a1a] hover:bg-[#f5f5f5]"
+                                  title="다운로드"
+                                >
+                                  <Download size={18} />
+                                </button>
+                                <button
+                                  onClick={() => handleImageUpload(index)}
+                                  className="p-2 bg-white rounded-lg text-[#1a1a1a] hover:bg-[#f5f5f5]"
+                                  title="변경"
+                                >
+                                  <Upload size={18} />
+                                </button>
+                                <button
+                                  onClick={() => handleImageDelete(index)}
+                                  className="p-2 bg-white rounded-lg text-[#ef4444] hover:bg-[#fef2f2]"
+                                  title="삭제"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleImageUpload(index)}
+                              className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#9ca3af] hover:text-[#f97316] hover:bg-[#fff7ed] transition-colors"
+                            >
+                              <ImageIcon size={24} />
+                              <span className="text-xs">이미지 업로드</span>
+                            </button>
+                          )}
                         </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleImageUpload(index)}
-                        className="w-full h-full flex flex-col items-center justify-center gap-2 text-[#9ca3af] hover:text-[#f97316] hover:bg-[#fff7ed] transition-colors"
+                      );
+                    }
+                    
+                    // 텍스트 입력 섹션들
+                    const placeholders: Record<RowType, string> = {
+                      image: '',
+                      timeline: '타임라인...',
+                      source: '소스...',
+                      effect: '효과...',
+                      note: '특이사항...',
+                      narration: '대본/나레이션...',
+                    };
+                    
+                    const getValue = () => {
+                      switch (rowKey) {
+                        case 'timeline': return item.timeline || '';
+                        case 'source': return item.source || '';
+                        case 'effect': return item.effect || '';
+                        case 'note': return item.note || '';
+                        case 'narration': return item.narration || '';
+                        default: return '';
+                      }
+                    };
+                    
+                    return (
+                      <div 
+                        key={rowKey}
+                        className={`border-b border-[#e5e7eb] ${isNarration ? 'bg-[#f5efe6]' : ''}`}
+                        style={{ height }}
                       >
-                        <ImageIcon size={24} />
-                        <span className="text-xs">이미지 업로드</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* 타임라인 섹션 */}
-                  <div 
-                    className="border-b border-[#e5e7eb]"
-                    style={{ height: rowHeights.timeline }}
-                  >
-                    <textarea
-                      value={item.timeline || ''}
-                      onChange={(e) => handleUpdateColumn(index, 'timeline', e.target.value)}
-                      placeholder="타임라인..."
-                      className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
-                    />
-                  </div>
-
-                  <div 
-                    className="border-b border-[#e5e7eb]"
-                    style={{ height: rowHeights.source }}
-                  >
-                    <textarea
-                      value={item.source || ''}
-                      onChange={(e) => handleUpdateColumn(index, 'source', e.target.value)}
-                      placeholder="소스..."
-                      className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
-                    />
-                  </div>
-
-                  <div 
-                    className="border-b border-[#e5e7eb]"
-                    style={{ height: rowHeights.effect }}
-                  >
-                    <textarea
-                      value={item.effect || ''}
-                      onChange={(e) => handleUpdateColumn(index, 'effect', e.target.value)}
-                      placeholder="효과..."
-                      className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
-                    />
-                  </div>
-
-                  <div 
-                    className="border-b border-[#e5e7eb]"
-                    style={{ height: rowHeights.note }}
-                  >
-                    <textarea
-                      value={item.note}
-                      onChange={(e) => handleUpdateColumn(index, 'note', e.target.value)}
-                      placeholder="특이사항..."
-                      className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
-                    />
-                  </div>
-
-                  {/* 대본 - 은은한 베이지색 배경 */}
-                  <div 
-                    className="border-b border-[#e5e7eb] bg-[#f5efe6]"
-                    style={{ height: rowHeights.narration }}
-                  >
-                    <textarea
-                      value={item.narration}
-                      onChange={(e) => handleUpdateColumn(index, 'narration', e.target.value)}
-                      placeholder="대본/나레이션..."
-                      className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
-                    />
-                  </div>
+                        <textarea
+                          value={getValue()}
+                          onChange={(e) => handleUpdateColumn(index, rowKey, e.target.value)}
+                          placeholder={placeholders[rowKey]}
+                          className="w-full h-full p-3 bg-transparent resize-none outline-none text-sm text-[#1a1a1a] placeholder:text-[#d1d5db]"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
 
