@@ -55,6 +55,8 @@ export interface Plan {
   reference?: string; // 레퍼런스
   ctaText?: string; // CTA 문장
   summary?: string; // 카드 미리보기 텍스트
+  tndTitle?: string; // T&D 제목
+  tndDescription?: string; // T&D 설명
   storyboard: StoryboardItem[]; // 스토리보드
   rowHeights?: RowHeights; // 행 높이 설정 (선택)
   rowOrder?: RowType[]; // 행 순서 설정 (선택)

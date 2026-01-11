@@ -484,6 +484,8 @@ const transformFromSupabase = (data: any): Plan => ({
   reference: data.reference || '',
   ctaText: data.cta_text || '',
   summary: data.summary || '',
+  tndTitle: data.tnd_title || '',
+  tndDescription: data.tnd_description || '',
   storyboard: data.storyboard || [],
   rowHeights: data.row_heights || undefined,
   rowOrder: data.row_order || undefined,
@@ -499,6 +501,8 @@ const transformToSupabase = (plan: Plan) => ({
   reference: plan.reference || '',
   cta_text: plan.ctaText || '',
   summary: plan.summary || '',
+  tnd_title: plan.tndTitle || '',
+  tnd_description: plan.tndDescription || '',
   storyboard: plan.storyboard,
   row_heights: plan.rowHeights || null,
   row_order: plan.rowOrder || null,
@@ -516,6 +520,8 @@ const transformToSupabaseForUpdate = (plan: Partial<Plan>) => {
   if (plan.reference !== undefined) result.reference = plan.reference;
   if (plan.ctaText !== undefined) result.cta_text = plan.ctaText;
   if (plan.summary !== undefined) result.summary = plan.summary;
+  if (plan.tndTitle !== undefined) result.tnd_title = plan.tndTitle;
+  if (plan.tndDescription !== undefined) result.tnd_description = plan.tndDescription;
   if (plan.storyboard !== undefined) result.storyboard = plan.storyboard;
   if (plan.rowHeights !== undefined) result.row_heights = plan.rowHeights;
   if (plan.rowOrder !== undefined) result.row_order = plan.rowOrder;

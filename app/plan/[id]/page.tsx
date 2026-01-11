@@ -52,6 +52,7 @@ function PlanDetailContent() {
   const [saving, setSaving] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showTndModal, setShowTndModal] = useState(false);
   
   const [rowHeights, setRowHeights] = useState(DEFAULT_ROW_HEIGHTS);
   const [rowOrder, setRowOrder] = useState<RowType[]>(DEFAULT_ROW_ORDER);
@@ -561,6 +562,48 @@ function PlanDetailContent() {
         </div>
       )}
 
+      {/* T&D 모달 */}
+      {showTndModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-[#1a1a1a]">T&D 정보</h3>
+              <button
+                onClick={() => setShowTndModal(false)}
+                className="p-2 hover:bg-[#f5f5f5] rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#6b7280] mb-2">제목</label>
+                <input
+                  type="text"
+                  value={plan?.tndTitle || ''}
+                  onChange={(e) => plan && setPlan({ ...plan, tndTitle: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] bg-white text-sm focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all"
+                  placeholder="T&D 제목 입력..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#6b7280] mb-2">설명</label>
+                <textarea
+                  value={plan?.tndDescription || ''}
+                  onChange={(e) => plan && setPlan({ ...plan, tndDescription: e.target.value })}
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl border border-[#e5e7eb] bg-white text-sm focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20 outline-none transition-all resize-none"
+                  placeholder="T&D 설명 입력..."
+                />
+              </div>
+            </div>
+            <p className="text-xs text-[#9ca3af] mt-4">
+              * T&D 정보는 기획안 저장 시 함께 저장됩니다.
+            </p>
+          </div>
+        </div>
+      )}
+
       <input
         type="file"
         ref={fileInputRef}
@@ -596,6 +639,12 @@ function PlanDetailContent() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowTndModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-[#8b5cf6] hover:bg-[#f5f3ff] border border-[#e5e7eb] transition-all font-semibold"
+            >
+              T&D
+            </button>
             <button
               onClick={() => setShowExportModal(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-[#6b7280] hover:bg-[#f5f5f5] border border-[#e5e7eb] transition-all"
