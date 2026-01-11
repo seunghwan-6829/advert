@@ -384,6 +384,10 @@ function NewPlanContent() {
                     />
                   </div>
                 ))}
+                {/* 소스 파일 레이블 */}
+                <div className="h-[88px] flex items-center justify-center border-b border-[#e5e7eb] bg-[#fafafa]">
+                  <span className="text-sm font-semibold text-[#374151]">소스</span>
+                </div>
               </div>
 
               {/* 스토리보드 열들 */}
