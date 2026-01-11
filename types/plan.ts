@@ -42,6 +42,7 @@ export interface Plan {
   summary?: string; // 카드 미리보기 텍스트
   storyboard: StoryboardItem[]; // 스토리보드
   rowHeights?: RowHeights; // 행 높이 설정 (선택)
+  isCompleted?: boolean; // 제작 완료 여부
   createdAt: string;
   updatedAt: string;
 }

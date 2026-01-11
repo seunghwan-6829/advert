@@ -486,6 +486,7 @@ const transformFromSupabase = (data: any): Plan => ({
   summary: data.summary || '',
   storyboard: data.storyboard || [],
   rowHeights: data.row_heights || undefined,
+  isCompleted: data.is_completed || false,
   createdAt: data.created_at,
   updatedAt: data.updated_at,
 });
@@ -499,17 +500,23 @@ const transformToSupabase = (plan: Plan) => ({
   summary: plan.summary || '',
   storyboard: plan.storyboard,
   row_heights: plan.rowHeights || null,
+  is_completed: plan.isCompleted || false,
   created_at: plan.createdAt,
   updated_at: plan.updatedAt,
 });
 
 // 업데이트용 변환 (id, created_at 제외)
-const transformToSupabaseForUpdate = (plan: Plan) => ({
-  brand_id: plan.brandId,
-  title: plan.title,
-  reference: plan.reference || '',
-  cta_text: plan.ctaText || '',
-  summary: plan.summary || '',
-  storyboard: plan.storyboard,
-  row_heights: plan.rowHeights || null,
-});
+const transformToSupabaseForUpdate = (plan: Partial<Plan>) => {
+  const result: Record<string, unknown> = {};
+  
+  if (plan.brandId !== undefined) result.brand_id = plan.brandId;
+  if (plan.title !== undefined) result.title = plan.title;
+  if (plan.reference !== undefined) result.reference = plan.reference;
+  if (plan.ctaText !== undefined) result.cta_text = plan.ctaText;
+  if (plan.summary !== undefined) result.summary = plan.summary;
+  if (plan.storyboard !== undefined) result.storyboard = plan.storyboard;
+  if (plan.rowHeights !== undefined) result.row_heights = plan.rowHeights;
+  if (plan.isCompleted !== undefined) result.is_completed = plan.isCompleted;
+  
+  return result;
+};
