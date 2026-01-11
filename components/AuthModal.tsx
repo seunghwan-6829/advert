@@ -131,11 +131,19 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         )}
 
         {/* 폼 */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* 이메일 */}
           <div>
-            <label className="field-label">
-              <Mail size={14} className="text-[#f97316]" />
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              fontSize: '14px', 
+              fontWeight: 500, 
+              color: '#374151',
+              marginBottom: '8px'
+            }}>
+              <Mail size={14} style={{ color: '#f97316' }} />
               이메일
             </label>
             <input
@@ -143,30 +151,66 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="example@email.com"
-              className="input-field"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#fff',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
               autoComplete="email"
             />
           </div>
 
           {/* 비밀번호 */}
           <div>
-            <label className="field-label">
-              <Lock size={14} className="text-[#f97316]" />
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              fontSize: '14px', 
+              fontWeight: 500, 
+              color: '#374151',
+              marginBottom: '8px'
+            }}>
+              <Lock size={14} style={{ color: '#f97316' }} />
               비밀번호
             </label>
-            <div className="relative">
+            <div style={{ position: 'relative' }}>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="6자 이상 입력"
-                className="input-field pr-12"
+                style={{
+                  width: '100%',
+                  padding: '12px 48px 12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: '#fff',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#9ca3af] hover:text-[#6b7280]"
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  padding: '4px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#9ca3af'
+                }}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -176,8 +220,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           {/* 비밀번호 확인 (회원가입 시) */}
           {mode === 'signup' && (
             <div>
-              <label className="field-label">
-                <Lock size={14} className="text-[#f97316]" />
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                fontSize: '14px', 
+                fontWeight: 500, 
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                <Lock size={14} style={{ color: '#f97316' }} />
                 비밀번호 확인
               </label>
               <input
@@ -185,7 +237,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="비밀번호 재입력"
-                className="input-field"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: '#fff',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
                 autoComplete="new-password"
               />
             </div>
@@ -195,7 +256,19 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full btn-primary py-3 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              width: '100%',
+              padding: '14px',
+              marginTop: '8px',
+              borderRadius: '12px',
+              border: 'none',
+              backgroundColor: '#f97316',
+              color: '#fff',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.5 : 1
+            }}
           >
             {isLoading 
               ? '처리 중...' 
