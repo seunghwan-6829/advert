@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Plan, StoryboardItem, RowHeights, RowType, DEFAULT_ROW_ORDER } from '@/types/plan';
+import { Plan, StoryboardItem, RowHeights, RowType, DEFAULT_ROW_ORDER, SourceFile } from '@/types/plan';
 import { getPlanById, updatePlan, deletePlan, createEmptyStoryboardItem, getBrandById } from '@/lib/store';
 import {
   ArrowLeft,
@@ -19,6 +19,7 @@ import {
   FileSpreadsheet,
   FileText,
   GripVertical,
+  File,
 } from 'lucide-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
@@ -41,7 +42,9 @@ function PlanDetailContent() {
   const planId = params.id as string;
   const brandIdFromUrl = searchParams.get('brand');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sourceFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingColumn, setUploadingColumn] = useState<number | null>(null);
+  const [uploadingSourceIndex, setUploadingSourceIndex] = useState<number | null>(null);
 
   const [plan, setPlan] = useState<Plan | null>(null);
   const [originalPlan, setOriginalPlan] = useState<Plan | null>(null);
@@ -351,6 +354,62 @@ function PlanDetailContent() {
     handleUpdateColumn(index, 'image', '');
   };
 
+  // 소스 파일 업로드
+  const handleSourceFileUpload = (index: number) => {
+    setUploadingSourceIndex(index);
+    sourceFileInputRef.current?.click();
+  };
+
+  const handleSourceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || uploadingSourceIndex === null || !plan) return;
+
+    // 5MB 제한
+    if (file.size > 5 * 1024 * 1024) {
+      alert('파일 크기는 5MB 이하여야 합니다.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const sourceFiles = plan.sourceFiles ? [...plan.sourceFiles] : [null, null, null];
+      sourceFiles[uploadingSourceIndex] = {
+        name: file.name,
+        data: reader.result as string,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+      };
+      setPlan({ ...plan, sourceFiles });
+      setUploadingSourceIndex(null);
+    };
+    reader.readAsDataURL(file);
+    
+    e.target.value = '';
+  };
+
+  const handleSourceFileDownload = (sourceFile: SourceFile) => {
+    const link = document.createElement('a');
+    link.href = sourceFile.data;
+    link.download = sourceFile.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleSourceFileDelete = (index: number) => {
+    if (!plan) return;
+    const sourceFiles = plan.sourceFiles ? [...plan.sourceFiles] : [null, null, null];
+    sourceFiles[index] = null;
+    setPlan({ ...plan, sourceFiles });
+  };
+
+  // 파일 크기 포맷
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8f6f2] flex items-center justify-center">
@@ -491,6 +550,14 @@ function PlanDetailContent() {
         ref={fileInputRef}
         onChange={handleFileChange}
         accept="image/*"
+        className="hidden"
+      />
+      
+      {/* 소스 파일 업로드용 hidden input */}
+      <input
+        type="file"
+        ref={sourceFileInputRef}
+        onChange={handleSourceFileChange}
         className="hidden"
       />
 
@@ -753,6 +820,62 @@ function PlanDetailContent() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* 소스 파일 업로드 섹션 */}
+        <div className="mt-6 bg-white rounded-2xl border border-[#e5e7eb] p-6">
+          <h3 className="text-lg font-semibold text-[#1a1a1a] mb-4 flex items-center gap-2">
+            <File size={20} className="text-[#f97316]" />
+            소스 파일 (최대 5MB)
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            {[0, 1, 2].map((index) => {
+              const sourceFile = plan.sourceFiles?.[index];
+              return (
+                <div 
+                  key={index}
+                  className="border border-[#e5e7eb] rounded-xl p-4 bg-[#fafafa]"
+                >
+                  <div className="text-sm font-medium text-[#6b7280] mb-3">소스 {index + 1}</div>
+                  
+                  {sourceFile ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-[#e5e7eb]">
+                        <File size={20} className="text-[#f97316] flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#1a1a1a] truncate">{sourceFile.name}</p>
+                          <p className="text-xs text-[#9ca3af]">{formatFileSize(sourceFile.size)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSourceFileDownload(sourceFile)}
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-[#f97316] text-white text-sm font-medium rounded-lg hover:bg-[#ea580c] transition-colors"
+                        >
+                          <Download size={14} />
+                          다운로드
+                        </button>
+                        <button
+                          onClick={() => handleSourceFileDelete(index)}
+                          className="px-3 py-2 text-[#ef4444] hover:bg-[#fef2f2] rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleSourceFileUpload(index)}
+                      className="w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-[#e5e7eb] rounded-lg text-[#9ca3af] hover:text-[#f97316] hover:border-[#f97316] hover:bg-[#fff7ed] transition-all"
+                    >
+                      <Upload size={24} />
+                      <span className="text-sm">파일 업로드</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </main>

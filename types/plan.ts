@@ -36,6 +36,14 @@ export interface RowHeights {
 // 행 순서 타입
 export type RowType = 'image' | 'timeline' | 'source' | 'effect' | 'note' | 'narration';
 
+// 소스 파일 타입
+export interface SourceFile {
+  name: string;      // 파일명
+  data: string;      // base64 데이터
+  size: number;      // 파일 크기 (bytes)
+  uploadedAt: string; // 업로드 시간
+}
+
 // 기본 행 순서
 export const DEFAULT_ROW_ORDER: RowType[] = ['image', 'timeline', 'source', 'effect', 'note', 'narration'];
 
@@ -49,6 +57,7 @@ export interface Plan {
   storyboard: StoryboardItem[]; // 스토리보드
   rowHeights?: RowHeights; // 행 높이 설정 (선택)
   rowOrder?: RowType[]; // 행 순서 설정 (선택)
+  sourceFiles?: (SourceFile | null)[]; // 소스 파일 (최대 3개)
   isCompleted?: boolean; // 제작 완료 여부
   createdAt: string;
   updatedAt: string;
