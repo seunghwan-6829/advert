@@ -72,7 +72,13 @@ function HomeContent() {
   // 통계 계산
   const stats = {
     total: filteredPlans.length,
-    completed: 0,
+    completed: filteredPlans.filter(p => p.isCompleted).length,
+  };
+
+  // 기획안 목록 새로고침
+  const refreshPlans = async () => {
+    const data = await getPlans();
+    setPlans(data);
   };
 
   // 브랜드 선택 시 URL 업데이트
@@ -228,7 +234,7 @@ function HomeContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {filteredPlans.map((plan, index) => (
                     <div key={plan.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.03}s` }}>
-                      <PlanCard plan={plan} />
+                      <PlanCard plan={plan} onUpdate={refreshPlans} />
                     </div>
                   ))}
                 </div>
