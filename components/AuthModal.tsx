@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Mail, Lock, Eye, EyeOff, UserPlus, LogIn, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -20,6 +20,13 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // defaultMode가 변경될 때 mode 상태도 업데이트
+  useEffect(() => {
+    if (isOpen) {
+      setMode(defaultMode);
+    }
+  }, [defaultMode, isOpen]);
 
   if (!isOpen) return null;
 
